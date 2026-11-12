@@ -25,20 +25,9 @@ inputs:
     default: .github/what-moved.json
   php-version:
     default: '8.2'
-  s3-bucket:
-    description: Bucket the graph and the report are published to; the credentials go through AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
-    required: true
-  s3-endpoint:
-    description: S3 endpoint of the bucket.
-    required: true
-  s3-region:
-    default: us-east-1
-  s3-prefix:
-    description: Folder of the bucket under which each pull request gets a random path.
-    default: ci/what-moved
-  public-url:
-    description: Public URL of the bucket, without a trailing slash.
-    required: true
+  assets-branch:
+    description: Orphan branch of the repository that keeps the graph of each pull request, created on the first run.
+    default: what-moved-assets
   github-token:
     default: ${{ github.token }}
 
@@ -80,24 +69,46 @@ runs:
         php "$GITHUB_ACTION_PATH/scripts/graph.php" head > head.json
         php "$GITHUB_ACTION_PATH/scripts/report.php" base.json head.json "head/$POSITIONS" out
 
-    # A private repository cannot show an image stored in it: the graph and the report go to the bucket,
-    # under a path nobody can guess, readable by whoever has the link.
+    # The graph goes to an orphan branch of the repository, so it is shown to whoever can read the repository.
+    # The comment links it by commit, so an updated pull request never shows a cached graph.
     - name: Publish the graph
       id: publish
       shell: bash
       working-directory: .what-moved
       env:
-        AWS_DEFAULT_REGION: ${{ inputs.s3-region }}
-        BUCKET: ${{ inputs.s3-bucket }}
-        ENDPOINT: ${{ inputs.s3-endpoint }}
-        PREFIX: ${{ inputs.s3-prefix }}
-        PUBLIC_URL: ${{ inputs.public-url }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        BRANCH: ${{ inputs.assets-branch }}
       run: |
-        prefix="$PREFIX/$(openssl rand -hex 16)"
-        for file in graph.svg report.html; do
-          aws s3 cp "out/$file" "s3://$BUCKET/$prefix/$file" --endpoint-url "$ENDPOINT" --acl public-read --only-show-errors
-        done
-        echo "url=$PUBLIC_URL/$prefix" >> "$GITHUB_OUTPUT"
+        remote="https://x-access-token:$GH_TOKEN@github.com/$REPO.git"
+        if git ls-remote --exit-code --heads "$remote" "$BRANCH" > /dev/null; then
+          git clone --quiet --depth 1 --branch "$BRANCH" "$remote" assets
+        else
+          git init --quiet assets
+          git -C assets checkout --quiet --orphan "$BRANCH"
+        fi
+        mkdir -p "assets/pr-$PR"
+        cp out/graph.svg "assets/pr-$PR/graph.svg"
+        cd assets
+        git add .
+        if ! git diff --cached --quiet; then
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit --quiet -m "Graph of pull request #$PR"
+          # Another pull request may have pushed in between.
+          for attempt in 1 2 3 4 5; do
+            git push --quiet "$remote" "HEAD:$BRANCH" && break
+            [ "$attempt" = 5 ] && exit 1
+            git pull --quiet --rebase "$remote" "$BRANCH"
+          done
+        fi
+        echo "url=$GITHUB_SERVER_URL/$REPO/raw/$(git rev-parse HEAD)/pr-$PR/graph.svg" >> "$GITHUB_OUTPUT"
+
+    - name: Keep the report
+      id: report
+      uses: actions/upload-artifact@v4
+      with:
+        name: what-moved-report
+        path: .what-moved/out/report.html
 
     - name: Comment on the pull request
       shell: bash
@@ -107,13 +118,14 @@ runs:
         REPO: ${{ github.repository }}
         PR: ${{ github.event.pull_request.number }}
         GRAPH_URL: ${{ steps.publish.outputs.url }}
+        REPORT_URL: ${{ steps.report.outputs.artifact-url }}
       run: |
         {
           cat out/summary.md
           echo
-          echo "![What the pull request moved]($GRAPH_URL/graph.svg)"
+          echo "![What the pull request moved]($GRAPH_URL)"
           echo
-          echo "[Explore every class]($GRAPH_URL/report.html)"
+          echo "[Explore every class]($REPORT_URL): download the report, then open \`report.html\`."
         } > comment.md
         cat comment.md >> "$GITHUB_STEP_SUMMARY"
         comment=$(gh api "repos/$REPO/issues/$PR/comments" --paginate --jq '.[] | select(.body | startswith("<!-- what-moved -->")) | .id' | head -n 1)

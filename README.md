@@ -16,7 +16,7 @@ name: What moved
 on: pull_request
 
 permissions:
-  contents: read
+  contents: write
   pull-requests: write
 
 concurrency:
@@ -28,13 +28,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: DeGraciaMathieu/what-moved@v1
-        with:
-          s3-bucket: my-bucket
-          s3-endpoint: https://fra1.digitaloceanspaces.com
-          public-url: https://my-bucket.fra1.digitaloceanspaces.com
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.S3_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET }}
 ```
 
 The inputs and their defaults are described in `action.yml`.
@@ -58,4 +51,6 @@ The `positions` file places each context, so the map stays the same from one pul
 
 ## Publishing
 
-A private repository cannot show an image stored in it: the image and the report go to an S3 bucket, under a path nobody can guess, readable by whoever has the link. This is temporary.
+The image is committed to an orphan branch of the repository, `what-moved-assets` by default, one file per pull request, overwritten at each run. The comment links it through `github.com/<owner>/<repo>/raw/<commit>/...`, so it shows to whoever can read the repository, private or not, and never from a stale cache. This is why the action needs `contents: write`.
+
+The report is kept as an artifact of the run: the comment links it, and it opens once downloaded.
