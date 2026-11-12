@@ -6,7 +6,8 @@
  * It runs against both the base and the head of the pull request with the same parser, the one of this action.
  * A class counts as used when its name appears in the code once resolved: a type, a new, a static call,
  * an instanceof, an attribute, a ::class. Imports alone and docblocks do not count.
- * The settings come from the environment, filled by action.yml from the inputs, and the layers from the config file.
+ * The source folder and the root namespace come from the environment, filled by action.yml from the inputs;
+ * the contexts and the layers come from the config file.
  */
 
 use PhpParser\Node;
@@ -17,48 +18,64 @@ use PhpParser\ParserFactory;
 
 require __DIR__.'/../vendor/autoload.php';
 
-$list = fn (string $value): array => array_values(array_filter(array_map('trim', explode(',', $value))));
-
 $root = rtrim($argv[1], '/');
 $config = (require __DIR__.'/config.php')($argv[2]);
 $source = trim(getenv('WHAT_MOVED_SOURCE'), '/');
 $namespace = trim(getenv('WHAT_MOVED_NAMESPACE'), '\\').'\\';
-$excluded = $list(getenv('WHAT_MOVED_EXCLUDE'));
 
-// "Policies:Http" puts the classes of Policies in the Http context.
-$merged = [];
+// Each declared prefix and its context, the longest first so that Carnet\Notes wins over Carnet.
+$prefixes = [];
 
-foreach ($list(getenv('WHAT_MOVED_MERGE')) as $pair) {
-    [$from, $to] = array_map('trim', explode(':', $pair, 2));
-    $merged[$from] = $to;
+foreach ($config['contexts'] as $name => $list) {
+    foreach ($list as $prefix) {
+        $prefixes[trim($prefix, '\\')] = $name;
+    }
 }
 
-$parser = (new ParserFactory)->createForNewestSupportedVersion();
-$finder = new NodeFinder;
+uksort($prefixes, fn (string $a, string $b): int => strlen($b) <=> strlen($a));
+$matches = fn (string $relative, string $prefix): bool => $relative === $prefix || str_starts_with($relative, $prefix.'\\');
 
-// The context is the first segment after the root namespace.
-$context = function (string $class) use ($namespace, $excluded, $merged): ?string {
+// The context of a class, from its name without the root namespace: the one of the longest declared prefix that
+// matches it, or else its first segment. The path is what remains between that prefix and the end of the name.
+$locate = function (string $class) use ($namespace, $config, $prefixes, $matches): ?array {
     if (! str_starts_with($class, $namespace)) {
         return null;
     }
 
-    $segment = explode('\\', substr($class, strlen($namespace)))[0];
+    $relative = substr($class, strlen($namespace));
 
-    return in_array($segment, $excluded, true) ? null : ($merged[$segment] ?? $segment);
+    foreach ($config['exclude'] as $prefix) {
+        if ($matches($relative, trim($prefix, '\\'))) {
+            return null;
+        }
+    }
+
+    foreach ($prefixes as $prefix => $name) {
+        if ($matches($relative, $prefix)) {
+            return ['context' => $name, 'path' => substr($relative, strlen($prefix) + 1)];
+        }
+    }
+
+    $segment = explode('\\', $relative)[0];
+
+    return ['context' => $segment, 'path' => substr($relative, strlen($segment) + 1)];
 };
 
 // The first layer that lists the context of the class, or one of the segments between the context and the class name.
-$layer = function (string $class, string $context) use ($namespace, $config): string {
-    $segments = array_slice(explode('\\', substr($class, strlen($namespace))), 1, -1);
+$layer = function (array $located) use ($config): string {
+    $segments = array_slice(explode('\\', $located['path']), 0, -1);
 
     foreach ($config['layers'] as $candidate) {
-        if (in_array($context, $candidate['contexts'], true) || array_intersect($segments, $candidate['segments']) !== []) {
+        if (in_array($located['context'], $candidate['contexts'], true) || array_intersect($segments, $candidate['segments']) !== []) {
             return $candidate['name'];
         }
     }
 
     return $config['default-layer'];
 };
+
+$parser = (new ParserFactory)->createForNewestSupportedVersion();
+$finder = new NodeFinder;
 
 $classes = [];
 $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root.'/'.$source, FilesystemIterator::SKIP_DOTS));
@@ -92,16 +109,16 @@ $nodes = [];
 $edges = [];
 
 foreach ($classes as $id => $class) {
-    $from = $context($id);
+    $located = $locate($id);
 
-    if ($from === null) {
+    if ($located === null) {
         continue;
     }
 
-    $nodes[] = ['id' => $id, 'context' => $from, 'layer' => $layer($id, $from), 'file' => $class['file'], 'hash' => $class['hash']];
+    $nodes[] = ['id' => $id, 'context' => $located['context'], 'layer' => $layer($located), 'file' => $class['file'], 'hash' => $class['hash']];
 
     foreach ($class['uses'] as $used) {
-        if ($used !== $id && isset($classes[$used]) && $context($used) !== null) {
+        if ($used !== $id && isset($classes[$used]) && $locate($used) !== null) {
             $edges[] = [$id, $used];
         }
     }

@@ -27,23 +27,26 @@ jobs:
   graph:
     runs-on: ubuntu-latest
     steps:
-      - uses: DeGraciaMathieu/what-moved@v2
+      - uses: DeGraciaMathieu/what-moved@v3
 ```
 
 The inputs and their defaults are described in `action.yml`.
 
-## Contexts and dependencies
-
-The context of a class is the segment after the root namespace: `App\Carnet\Domain\Fondue` belongs to `Carnet`.
+## Dependencies
 
 A class uses another one when its name appears in the code once resolved: a type, a `new`, a static call, an `instanceof`, an attribute, a `::class`. Imports alone and docblocks do not count.
 
 ## Configuration
 
-The config file, `.github/what-moved.json` by default, sets the layers and places the contexts on the map. Every key is optional.
+The config file, `.github/what-moved.json` by default, sets the contexts and the layers and places the contexts on the map. Every key is optional.
 
 ```json
 {
+    "contexts": {
+        "Http": ["Http", "Policies"],
+        "Notes": ["Carnet\\Notes"]
+    },
+    "exclude": ["Providers"],
     "layers": [
         { "name": "Domain", "color": "#1e1b16", "segments": ["Domain", "Model"] },
         { "name": "Application", "color": "#6b6357", "segments": ["Application", "UseCase"] },
@@ -58,12 +61,21 @@ The config file, `.github/what-moved.json` by default, sets the layers and place
 }
 ```
 
+### Contexts
+
+The context of a class is found from its name without the root namespace:
+
+- the context whose prefix, in `contexts`, is the longest to match the class: `App\Carnet\Notes\Domain\Note` belongs to `Notes`, and `App\Policies\FonduePolicy` to `Http`;
+- or else the first segment: `App\Carnet\Domain\Fondue` belongs to `Carnet`.
+
+So a project that declares nothing gets one context per first segment, and `contexts` both splits a context and merges several into one. The classes that match a prefix of `exclude` stay off the map.
+
 ### Layers
 
 A class takes the first layer, in the order of the file, that recognises it:
 
 - `contexts`: the class belongs to one of these contexts;
-- `segments`: one of the segments between the context and the class name is one of these names, at any depth. `App\Carnet\Domain\Fondue` and `App\Carnet\Model\Entity\Fondue` both fall in `Domain` above.
+- `segments`: one of the segments between the prefix of the context and the class name is one of these names, at any depth. `App\Carnet\Domain\Fondue` and `App\Carnet\Model\Entity\Fondue` both fall in `Domain` above. A segment inside the prefix does not count: with a context declared as `Carnet\Application\Queries`, its classes fall in `default-layer`.
 
 A class no layer recognises falls in `default-layer`, which must be one of the layers.
 

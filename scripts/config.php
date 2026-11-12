@@ -1,8 +1,9 @@
 <?php
 
 /*
- * Reads the configuration file of the project: the layers, the layer of the classes no layer recognises, and where
- * each context sits on the map. A missing file or key falls back to the defaults below.
+ * Reads the configuration file of the project: the declared contexts, the excluded prefixes, the layers, the layer
+ * of the classes no layer recognises, and where each context sits on the map.
+ * A missing file or key falls back to the defaults below.
  * Usage: $config = (require __DIR__.'/config.php')($path);
  */
 
@@ -10,6 +11,8 @@ return function (string $path): array {
     $config = is_file($path) ? json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR) : [];
 
     $config += [
+        'contexts' => [],
+        'exclude' => [],
         'layers' => [
             ['name' => 'Domain', 'color' => '#1e1b16', 'segments' => ['Domain']],
             ['name' => 'Application', 'color' => '#6b6357', 'segments' => ['Application']],

@@ -8,14 +8,8 @@ inputs:
   namespace:
     description: Root namespace of the classes in the folder; the segment after it gives the context.
     default: App
-  exclude:
-    description: Contexts left off the map, comma separated.
-    default: ''
-  merge:
-    description: Contexts merged into another one, as comma separated source:target pairs (Policies:Http).
-    default: ''
   config:
-    description: JSON file, from the project root, that sets the layers and places each context on the map; see the README.
+    description: JSON file, from the project root, that sets the contexts and the layers and places each context on the map; see the README.
     default: .github/what-moved.json
   php-version:
     default: '8.2'
@@ -53,8 +47,6 @@ runs:
       env:
         WHAT_MOVED_SOURCE: ${{ inputs.source }}
         WHAT_MOVED_NAMESPACE: ${{ inputs.namespace }}
-        WHAT_MOVED_EXCLUDE: ${{ inputs.exclude }}
-        WHAT_MOVED_MERGE: ${{ inputs.merge }}
         CONFIG: ${{ inputs.config }}
       # The base may not have the config file yet: both sides are read with the one of the head.
       run: |
