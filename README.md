@@ -27,7 +27,7 @@ jobs:
   graph:
     runs-on: ubuntu-latest
     steps:
-      - uses: DeGraciaMathieu/what-moved@v3
+      - uses: DeGraciaMathieu/what-moved@v4
 ```
 
 The inputs and their defaults are described in `action.yml`.
@@ -38,13 +38,14 @@ A class uses another one when its name appears in the code once resolved: a type
 
 ## Configuration
 
-The config file, `.github/what-moved.json` by default, sets the contexts and the layers and places the contexts on the map. Every key is optional.
+The config file, `.github/what-moved.json` by default, sets the contexts, their place on the map, and the layers. Every key is optional.
 
 ```json
 {
     "contexts": {
-        "Http": ["Http", "Policies"],
-        "Notes": ["Carnet\\Notes"]
+        "Http":   { "prefixes": ["Http", "Policies"], "position": [150, 125] },
+        "Carnet": { "position": [370, 290] },
+        "Notes":  { "prefixes": ["Carnet\\Notes"], "position": null }
     },
     "exclude": ["Providers"],
     "layers": [
@@ -53,11 +54,7 @@ The config file, `.github/what-moved.json` by default, sets the contexts and the
         { "name": "Infrastructure", "color": "#a8998a", "segments": ["Infrastructure", "Adapter"] },
         { "name": "Web", "color": "#d9d1c2", "contexts": ["Http"] }
     ],
-    "default-layer": "Application",
-    "positions": {
-        "Http": [150, 125],
-        "Carnet": [370, 290]
-    }
+    "default-layer": "Application"
 }
 ```
 
@@ -65,10 +62,10 @@ The config file, `.github/what-moved.json` by default, sets the contexts and the
 
 The context of a class is found from its name without the root namespace:
 
-- the context whose prefix, in `contexts`, is the longest to match the class: `App\Carnet\Notes\Domain\Note` belongs to `Notes`, and `App\Policies\FonduePolicy` to `Http`;
+- the context whose prefix, among the `prefixes` of `contexts`, is the longest to match the class: `App\Carnet\Notes\Domain\Note` belongs to `Notes`, and `App\Policies\FonduePolicy` to `Http`;
 - or else the first segment: `App\Carnet\Domain\Fondue` belongs to `Carnet`.
 
-So a project that declares nothing gets one context per first segment, and `contexts` both splits a context and merges several into one. The classes that match a prefix of `exclude` stay off the map.
+So a project that declares nothing gets one context per first segment, and `prefixes` both split a context and merge several into one. A context without `prefixes`, like `Carnet` above, is still found by its first segment: declaring it only places it on the map. The classes that match a prefix of `exclude` stay off the map.
 
 ### Layers
 
@@ -83,7 +80,7 @@ The layer gives the colour of the dot, and the order of the file gives the order
 
 ### Positions
 
-`positions` places each context on a 780 by 610 map, so the map stays the same from one pull request to the next. A missing context goes next to the one it shares the most dependencies with.
+The `position` of a context places it on a 780 by 610 map, so the map stays the same from one pull request to the next. A context without a position, or with a null one, goes next to the one it shares the most dependencies with.
 
 ## Publishing
 

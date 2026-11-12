@@ -26,8 +26,8 @@ $namespace = trim(getenv('WHAT_MOVED_NAMESPACE'), '\\').'\\';
 // Each declared prefix and its context, the longest first so that Carnet\Notes wins over Carnet.
 $prefixes = [];
 
-foreach ($config['contexts'] as $name => $list) {
-    foreach ($list as $prefix) {
+foreach ($config['contexts'] as $name => $context) {
+    foreach ($context['prefixes'] as $prefix) {
         $prefixes[trim($prefix, '\\')] = $name;
     }
 }

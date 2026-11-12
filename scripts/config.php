@@ -1,9 +1,10 @@
 <?php
 
 /*
- * Reads the configuration file of the project: the declared contexts, the excluded prefixes, the layers, the layer
- * of the classes no layer recognises, and where each context sits on the map.
- * A missing file or key falls back to the defaults below.
+ * Reads the configuration file of the project: the declared contexts with their prefixes and their place on the map,
+ * the excluded prefixes, the layers, and the layer of the classes no layer recognises.
+ * A missing file or key falls back to the defaults below, and a null position to no position.
+ * The positions are also gathered by context, for the map.
  * Usage: $config = (require __DIR__.'/config.php')($path);
  */
 
@@ -20,8 +21,10 @@ return function (string $path): array {
             ['name' => 'Http', 'color' => '#d9d1c2', 'contexts' => ['Http']],
         ],
         'default-layer' => 'Application',
-        'positions' => [],
     ];
+
+    $config['contexts'] = array_map(fn (array $context): array => $context + ['prefixes' => [], 'position' => null], $config['contexts']);
+    $config['positions'] = array_filter(array_map(fn (array $context): ?array => $context['position'], $config['contexts']), fn (?array $position): bool => $position !== null);
 
     $config['layers'] = array_map(fn (array $layer): array => $layer + ['segments' => [], 'contexts' => []], $config['layers']);
 

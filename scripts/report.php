@@ -76,7 +76,7 @@ $cohesion = fn (array $context): int => $context['internal'] + $context['out'] >
     ? (int) round(100 * $context['internal'] / ($context['internal'] + $context['out']))
     : 100;
 
-// A context missing from the positions of the config goes next to the one it shares the most dependencies with.
+// A context without a position goes next to the one it shares the most dependencies with.
 $positions = $config['positions'];
 
 foreach (array_keys($contexts) as $name) {
