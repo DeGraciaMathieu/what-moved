@@ -27,27 +27,51 @@ jobs:
   graph:
     runs-on: ubuntu-latest
     steps:
-      - uses: DeGraciaMathieu/what-moved@v1
+      - uses: DeGraciaMathieu/what-moved@v2
 ```
 
 The inputs and their defaults are described in `action.yml`.
 
-## Contexts and layers
+## Contexts and dependencies
 
-The context of a class is the segment after the root namespace: `App\Carnet\Domain\Fondue` belongs to `Carnet`. The next segment gives the layer, `Domain`, `Application` or `Infrastructure`, and `application` by default. Every class of the contexts listed in `web` falls in the web layer.
+The context of a class is the segment after the root namespace: `App\Carnet\Domain\Fondue` belongs to `Carnet`.
 
 A class uses another one when its name appears in the code once resolved: a type, a `new`, a static call, an `instanceof`, an attribute, a `::class`. Imports alone and docblocks do not count.
 
-## The map
+## Configuration
 
-The `positions` file places each context, so the map stays the same from one pull request to the next. A missing context goes next to the one it shares the most dependencies with.
+The config file, `.github/what-moved.json` by default, sets the layers and places the contexts on the map. Every key is optional.
 
 ```json
 {
-    "Http": [150, 125],
-    "Carnet": [370, 290]
+    "layers": [
+        { "name": "Domain", "color": "#1e1b16", "segments": ["Domain", "Model"] },
+        { "name": "Application", "color": "#6b6357", "segments": ["Application", "UseCase"] },
+        { "name": "Infrastructure", "color": "#a8998a", "segments": ["Infrastructure", "Adapter"] },
+        { "name": "Web", "color": "#d9d1c2", "contexts": ["Http"] }
+    ],
+    "default-layer": "Application",
+    "positions": {
+        "Http": [150, 125],
+        "Carnet": [370, 290]
+    }
 }
 ```
+
+### Layers
+
+A class takes the first layer, in the order of the file, that recognises it:
+
+- `contexts`: the class belongs to one of these contexts;
+- `segments`: one of the segments between the context and the class name is one of these names, at any depth. `App\Carnet\Domain\Fondue` and `App\Carnet\Model\Entity\Fondue` both fall in `Domain` above.
+
+A class no layer recognises falls in `default-layer`, which must be one of the layers.
+
+The layer gives the colour of the dot, and the order of the file gives the order of the legend and of the dots inside each context. Without `layers`, the action uses four layers: `Domain`, `Application` and `Infrastructure`, recognised by the segment of the same name, and `Http`, recognised by its context.
+
+### Positions
+
+`positions` places each context on a 780 by 610 map, so the map stays the same from one pull request to the next. A missing context goes next to the one it shares the most dependencies with.
 
 ## Publishing
 

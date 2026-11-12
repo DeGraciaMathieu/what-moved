@@ -2,16 +2,17 @@
 
 /*
  * Turns the graph.php results of the base and the head into the dependency graph of the pull request.
- * Usage: php report.php <base json> <head json> <positions json> <output dir>. Writes:
+ * Usage: php report.php <base json> <head json> <config json> <output dir>. Writes:
  * - graph.svg: one circle per context filled with a dot per class, red when the pull request changed it, green when
  *   it added it, and only the relations it touches (added in green, existing ones from or to a touched class in grey);
  * - report.html: the same image, then every class and its dependencies to explore;
  * - summary.md: the figures for the pull request comment.
- * The contexts sit where the positions file puts them, so the map stays the same from one pull request to the next.
+ * The contexts sit where the config file puts them, so the map stays the same from one pull request to the next.
  */
 
 $read = fn (string $path): array => json_decode(file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
-[, $basePath, $headPath, $positionsPath, $out] = $argv;
+[, $basePath, $headPath, $configPath, $out] = $argv;
+$config = (require __DIR__.'/config.php')($configPath);
 $base = $read($basePath);
 $head = $read($headPath);
 
@@ -75,8 +76,8 @@ $cohesion = fn (array $context): int => $context['internal'] + $context['out'] >
     ? (int) round(100 * $context['internal'] / ($context['internal'] + $context['out']))
     : 100;
 
-// A context missing from the positions file goes next to the one it shares the most dependencies with.
-$positions = $read($positionsPath);
+// A context missing from the positions of the config goes next to the one it shares the most dependencies with.
+$positions = $config['positions'];
 
 foreach (array_keys($contexts) as $name) {
     if (isset($positions[$name])) {
@@ -105,7 +106,8 @@ foreach (array_keys($contexts) as $name) {
 $e = fn (string $text): string => htmlspecialchars($text, ENT_QUOTES | ENT_XML1);
 $radius = fn (int $classes): float => 14 + sqrt($classes) * 10.5;
 $ring = fn (string $name): float => $radius($contexts[$name]['classes']) + ($contexts[$name]['hot'] > 0 ? 9 : 4);
-$colors = ['changed' => '#b5121b', 'added' => '#2f7d4f', 'domain' => '#1e1b16', 'application' => '#6b6357', 'infrastructure' => '#a8998a', 'web' => '#d9d1c2'];
+$colors = ['changed' => '#b5121b', 'added' => '#2f7d4f'];
+$layerColors = array_column($config['layers'], 'color', 'name');
 
 // A slightly bent edge from circle edge to circle edge.
 $curve = function (array $from, array $to, float $r1, float $r2): string {
@@ -161,7 +163,7 @@ foreach ($links as $link) {
 }
 
 $rank = ['changed' => 0, 'added' => 0, '' => 1];
-$layerRank = ['domain' => 0, 'application' => 1, 'infrastructure' => 2, 'web' => 3];
+$layerRank = array_flip(array_column($config['layers'], 'name'));
 
 foreach ($contexts as $name => $context) {
     [$x, $y] = $positions[$name];
@@ -184,7 +186,7 @@ foreach ($contexts as $name => $context) {
         $distance = $step * sqrt($i + 0.5);
         $svg[] = sprintf('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s" stroke="#ffffff" stroke-width="1"><title>%s</title></circle>',
             $x + $distance * cos($i * 2.39996), $y + $distance * sin($i * 2.39996), min(5.5, $step * 0.42),
-            $colors[$node['state'] ?: $node['layer']], $e($node['id']));
+            $node['state'] !== '' ? $colors[$node['state']] : $layerColors[$node['layer']], $e($node['id']));
     }
 
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" font-size="12.5" font-weight="600">%s<tspan dx="6" class="%s">%s</tspan></text>',
@@ -192,7 +194,10 @@ foreach ($contexts as $name => $context) {
         $context['added'] ? 'new' : sprintf('%d cl. · cohesion %d %%', $context['classes'], $cohesion($context)));
 }
 
-$legend = [['dot', $colors['domain'], 'Domain'], ['dot', $colors['application'], 'Application'], ['dot', $colors['infrastructure'], 'Infrastructure'], ['dot', $colors['web'], getenv('WHAT_MOVED_WEB_LABEL')], ['dot', $colors['changed'], 'changed'], ['dot', $colors['added'], 'added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched']];
+$legend = [
+    ...array_map(fn (array $layer): array => ['dot', $layer['color'], $layer['name']], $config['layers']),
+    ['dot', $colors['changed'], 'changed'], ['dot', $colors['added'], 'added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched'],
+];
 $x = 20;
 $y = 562;
 
@@ -225,6 +230,7 @@ $data = json_encode([
     'edges' => $edges,
     'positions' => $positions,
     'colors' => $colors,
+    'layers' => $layerColors,
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 $report = file_get_contents(__DIR__.'/report.html');
 file_put_contents("{$out}/report.html", strtr($report, ['{{image}}' => $image, '{{data}}' => $data]));

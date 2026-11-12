@@ -14,14 +14,8 @@ inputs:
   merge:
     description: Contexts merged into another one, as comma separated source:target pairs (Policies:Http).
     default: ''
-  web:
-    description: Contexts whose classes all count in the web layer, comma separated.
-    default: Http
-  web-label:
-    description: Label of the web layer in the legend.
-    default: Http
-  positions:
-    description: 'JSON file, from the project root, placing each context on the map ({"Context": [x, y]}).'
+  config:
+    description: JSON file, from the project root, that sets the layers and places each context on the map; see the README.
     default: .github/what-moved.json
   php-version:
     default: '8.2'
@@ -61,13 +55,12 @@ runs:
         WHAT_MOVED_NAMESPACE: ${{ inputs.namespace }}
         WHAT_MOVED_EXCLUDE: ${{ inputs.exclude }}
         WHAT_MOVED_MERGE: ${{ inputs.merge }}
-        WHAT_MOVED_WEB: ${{ inputs.web }}
-        WHAT_MOVED_WEB_LABEL: ${{ inputs.web-label }}
-        POSITIONS: ${{ inputs.positions }}
+        CONFIG: ${{ inputs.config }}
+      # The base may not have the config file yet: both sides are read with the one of the head.
       run: |
-        php "$GITHUB_ACTION_PATH/scripts/graph.php" base > base.json
-        php "$GITHUB_ACTION_PATH/scripts/graph.php" head > head.json
-        php "$GITHUB_ACTION_PATH/scripts/report.php" base.json head.json "head/$POSITIONS" out
+        php "$GITHUB_ACTION_PATH/scripts/graph.php" base "head/$CONFIG" > base.json
+        php "$GITHUB_ACTION_PATH/scripts/graph.php" head "head/$CONFIG" > head.json
+        php "$GITHUB_ACTION_PATH/scripts/report.php" base.json head.json "head/$CONFIG" out
 
     # The graph goes to an orphan branch of the repository, so it is shown to whoever can read the repository.
     # The comment links it by commit, so an updated pull request never shows a cached graph.

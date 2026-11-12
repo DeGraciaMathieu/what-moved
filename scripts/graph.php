@@ -2,11 +2,11 @@
 
 /*
  * Lists the classes of the source folder and the classes of the source folder each one uses.
- * Usage: php graph.php <project root>. Prints JSON: nodes (id, context, layer, file, hash) and edges ([from, to]).
+ * Usage: php graph.php <project root> <config json>. Prints JSON: nodes (id, context, layer, file, hash) and edges ([from, to]).
  * It runs against both the base and the head of the pull request with the same parser, the one of this action.
  * A class counts as used when its name appears in the code once resolved: a type, a new, a static call,
  * an instanceof, an attribute, a ::class. Imports alone and docblocks do not count.
- * The settings come from the environment, filled by action.yml from the inputs.
+ * The settings come from the environment, filled by action.yml from the inputs, and the layers from the config file.
  */
 
 use PhpParser\Node;
@@ -20,10 +20,10 @@ require __DIR__.'/../vendor/autoload.php';
 $list = fn (string $value): array => array_values(array_filter(array_map('trim', explode(',', $value))));
 
 $root = rtrim($argv[1], '/');
+$config = (require __DIR__.'/config.php')($argv[2]);
 $source = trim(getenv('WHAT_MOVED_SOURCE'), '/');
 $namespace = trim(getenv('WHAT_MOVED_NAMESPACE'), '\\').'\\';
 $excluded = $list(getenv('WHAT_MOVED_EXCLUDE'));
-$web = $list(getenv('WHAT_MOVED_WEB'));
 
 // "Policies:Http" puts the classes of Policies in the Http context.
 $merged = [];
@@ -47,10 +47,17 @@ $context = function (string $class) use ($namespace, $excluded, $merged): ?strin
     return in_array($segment, $excluded, true) ? null : ($merged[$segment] ?? $segment);
 };
 
-$layer = function (string $class, string $context) use ($namespace, $web): string {
-    $segment = explode('\\', substr($class, strlen($namespace)))[1] ?? '';
+// The first layer that lists the context of the class, or one of the segments between the context and the class name.
+$layer = function (string $class, string $context) use ($namespace, $config): string {
+    $segments = array_slice(explode('\\', substr($class, strlen($namespace))), 1, -1);
 
-    return in_array($context, $web, true) ? 'web' : (in_array($segment, ['Domain', 'Application', 'Infrastructure'], true) ? strtolower($segment) : 'application');
+    foreach ($config['layers'] as $candidate) {
+        if (in_array($context, $candidate['contexts'], true) || array_intersect($segments, $candidate['segments']) !== []) {
+            return $candidate['name'];
+        }
+    }
+
+    return $config['default-layer'];
 };
 
 $classes = [];
