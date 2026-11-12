@@ -1,10 +1,14 @@
 # What moved
 
-Relire une PR écrite par l'IA, c'est d'abord comprendre ce qu'elle a bougé. Cette action dessine, en commentaire de la PR, la carte des contextes du projet : chaque classe y est un point, rouge quand la PR l'a modifiée, vert quand elle l'a ajoutée, avec seulement les dépendances que la PR touche. On sait où regarder avant d'ouvrir le diff.
+Reviewing a pull request written by an AI starts with understanding what it moved. This action comments on the pull request with a map of the project's contexts: each class is a dot, red when the pull request changed it, green when it added it, with only the dependencies the pull request touches. You know where to look before opening the diff.
 
-Le commentaire donne les chiffres, l'image, et un lien vers un rapport où explorer chaque classe et ses dépendances.
+![A pull request adding a Vins context, mapped by What moved](docs/example.svg)
 
-## Utilisation
+Here, the pull request adds a `Vins` context with three classes, changes two classes in `Http` and three in `Carnet`, and adds eight dependencies, drawn in green.
+
+The comment gives the figures, the image, and a link to a report to explore every class and its dependencies.
+
+## Usage
 
 ```yaml
 name: What moved
@@ -25,25 +29,25 @@ jobs:
     steps:
       - uses: DeGraciaMathieu/what-moved@v1
         with:
-          s3-bucket: mon-bucket
+          s3-bucket: my-bucket
           s3-endpoint: https://fra1.digitaloceanspaces.com
-          public-url: https://mon-bucket.fra1.digitaloceanspaces.com
+          public-url: https://my-bucket.fra1.digitaloceanspaces.com
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.S3_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET }}
 ```
 
-Les entrées et leurs valeurs par défaut sont décrites dans `action.yml`.
+The inputs and their defaults are described in `action.yml`.
 
-## Les contextes et les couches
+## Contexts and layers
 
-Le contexte d'une classe est le segment qui suit le namespace racine : `App\Carnet\Domain\Fondue` est dans `Carnet`. Le segment suivant donne la couche, `Domain`, `Application` ou `Infrastructure`, et `application` par défaut. Les contextes listés dans `web` tombent tous dans la couche web.
+The context of a class is the segment after the root namespace: `App\Carnet\Domain\Fondue` belongs to `Carnet`. The next segment gives the layer, `Domain`, `Application` or `Infrastructure`, and `application` by default. Every class of the contexts listed in `web` falls in the web layer.
 
-Une classe en utilise une autre quand son nom apparaît dans le code une fois résolu : un type, un `new`, un appel statique, un `instanceof`, un attribut, un `::class`. Les imports seuls et les docblocks ne comptent pas.
+A class uses another one when its name appears in the code once resolved: a type, a `new`, a static call, an `instanceof`, an attribute, a `::class`. Imports alone and docblocks do not count.
 
-## La carte
+## The map
 
-Le fichier `positions` place chaque contexte, pour que la carte reste la même d'une PR à l'autre. Un contexte absent se pose à côté de celui avec lequel il partage le plus de dépendances.
+The `positions` file places each context, so the map stays the same from one pull request to the next. A missing context goes next to the one it shares the most dependencies with.
 
 ```json
 {
@@ -52,6 +56,6 @@ Le fichier `positions` place chaque contexte, pour que la carte reste la même d
 }
 ```
 
-## La publication
+## Publishing
 
-Un repo privé ne peut pas afficher une image qu'il contient : l'image et le rapport partent dans un bucket S3, sous un chemin impossible à deviner, lisible par qui a le lien. C'est provisoire.
+A private repository cannot show an image stored in it: the image and the report go to an S3 bucket, under a path nobody can guess, readable by whoever has the link. This is temporary.

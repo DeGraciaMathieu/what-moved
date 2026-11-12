@@ -1,43 +1,43 @@
 name: What moved
-description: Dessine sur la PR ce qu'elle a bougé dans les classes et leurs dépendances, pour savoir où regarder avant de lire le diff.
+description: Draws on the pull request what it moved among the classes and their dependencies, to know where to look before reading the diff.
 
 inputs:
   source:
-    description: Dossier des classes à cartographier, depuis la racine du projet.
+    description: Folder of the classes to map, from the project root.
     default: app
   namespace:
-    description: Namespace racine des classes du dossier ; le segment qui le suit donne le contexte.
+    description: Root namespace of the classes in the folder; the segment after it gives the context.
     default: App
   exclude:
-    description: Contextes laissés hors de la carte, séparés par des virgules.
+    description: Contexts left off the map, comma separated.
     default: ''
   merge:
-    description: Contextes regroupés dans un autre, en paires source:cible séparées par des virgules (Policies:Http).
+    description: Contexts merged into another one, as comma separated source:target pairs (Policies:Http).
     default: ''
   web:
-    description: Contextes dont toutes les classes comptent dans la couche web, séparés par des virgules.
+    description: Contexts whose classes all count in the web layer, comma separated.
     default: Http
   web-label:
-    description: Libellé de la couche web dans la légende.
+    description: Label of the web layer in the legend.
     default: Http
   positions:
-    description: Fichier JSON, depuis la racine du projet, qui place chaque contexte sur la carte ({"Contexte": [x, y]}).
+    description: JSON file, from the project root, placing each context on the map ({"Context": [x, y]}).
     default: .github/what-moved.json
   php-version:
     default: '8.2'
   s3-bucket:
-    description: Bucket où publier le graphe et le rapport ; les identifiants passent par AWS_ACCESS_KEY_ID et AWS_SECRET_ACCESS_KEY.
+    description: Bucket the graph and the report are published to; the credentials go through AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.
     required: true
   s3-endpoint:
-    description: Endpoint S3 du bucket.
+    description: S3 endpoint of the bucket.
     required: true
   s3-region:
     default: us-east-1
   s3-prefix:
-    description: Dossier du bucket sous lequel chaque PR reçoit un chemin aléatoire.
+    description: Folder of the bucket under which each pull request gets a random path.
     default: ci/what-moved
   public-url:
-    description: URL publique du bucket, sans slash final.
+    description: Public URL of the bucket, without a trailing slash.
     required: true
   github-token:
     default: ${{ github.token }}
@@ -78,7 +78,7 @@ runs:
       run: |
         php "$GITHUB_ACTION_PATH/scripts/graph.php" base > base.json
         php "$GITHUB_ACTION_PATH/scripts/graph.php" head > head.json
-        php "$GITHUB_ACTION_PATH/scripts/report.php" base.json head.json "head/$POSITIONS" graphe
+        php "$GITHUB_ACTION_PATH/scripts/report.php" base.json head.json "head/$POSITIONS" out
 
     # A private repository cannot show an image stored in it: the graph and the report go to the bucket,
     # under a path nobody can guess, readable by whoever has the link.
@@ -94,8 +94,8 @@ runs:
         PUBLIC_URL: ${{ inputs.public-url }}
       run: |
         prefix="$PREFIX/$(openssl rand -hex 16)"
-        for file in graphe.svg rapport.html; do
-          aws s3 cp "graphe/$file" "s3://$BUCKET/$prefix/$file" --endpoint-url "$ENDPOINT" --acl public-read --only-show-errors
+        for file in graph.svg report.html; do
+          aws s3 cp "out/$file" "s3://$BUCKET/$prefix/$file" --endpoint-url "$ENDPOINT" --acl public-read --only-show-errors
         done
         echo "url=$PUBLIC_URL/$prefix" >> "$GITHUB_OUTPUT"
 
@@ -109,11 +109,11 @@ runs:
         GRAPH_URL: ${{ steps.publish.outputs.url }}
       run: |
         {
-          cat graphe/resume.md
+          cat out/summary.md
           echo
-          echo "![Graphe des dépendances de la PR]($GRAPH_URL/graphe.svg)"
+          echo "![What the pull request moved]($GRAPH_URL/graph.svg)"
           echo
-          echo "[Explorer toutes les classes]($GRAPH_URL/rapport.html)"
+          echo "[Explore every class]($GRAPH_URL/report.html)"
         } > comment.md
         cat comment.md >> "$GITHUB_STEP_SUMMARY"
         comment=$(gh api "repos/$REPO/issues/$PR/comments" --paginate --jq '.[] | select(.body | startswith("<!-- what-moved -->")) | .id' | head -n 1)

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dépendances de la PR</title>
+<title>What moved</title>
 <!-- Template of report.php, which puts in the graph of the comment and the data of every class and dependency. -->
 <style>
     body { margin: 0; background: #fbfaf6; color: #1e1b16; font: 15px/1.5 -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; }
@@ -29,17 +29,17 @@
 </head>
 <body>
 <main>
-    <h1>Dépendances de la PR</h1>
+    <h1>What moved</h1>
     <div class="frame">{{image}}</div>
 
-    <h2>Toutes les classes</h2>
-    <p>Chaque point est une classe, attirée vers son contexte. Clique sur un point pour voir ce dont il dépend et ce qui l'utilise.</p>
-    <div class="toolbar" role="group" aria-label="Classes affichées">
-        <button type="button" id="only-pr" aria-pressed="true">La PR et ses voisines</button>
-        <button type="button" id="everything" aria-pressed="false">Toute l'application</button>
+    <h2>Every class</h2>
+    <p>Each dot is a class, pulled towards its context. Click a dot to see what it depends on and what uses it.</p>
+    <div class="toolbar" role="group" aria-label="Classes shown">
+        <button type="button" id="only-pr" aria-pressed="true">The pull request and its neighbours</button>
+        <button type="button" id="everything" aria-pressed="false">The whole application</button>
     </div>
     <div class="explore">
-        <div class="canvas"><svg id="graph" viewBox="0 0 780 560" role="img" aria-label="Graphe des classes"></svg></div>
+        <div class="canvas"><svg id="graph" viewBox="0 0 780 560" role="img" aria-label="Class graph"></svg></div>
         <aside class="panel" id="panel" aria-live="polite"></aside>
     </div>
 </main>
@@ -57,10 +57,10 @@ const el = (tag, attrs, parent) => {
     return node;
 };
 const short = (id) => id.split('\\').pop();
-const stateLabel = { added: 'ajoutée par la PR', changed: 'modifiée par la PR', '': 'inchangée' };
+const stateLabel = { added: 'added by the pull request', changed: 'changed by the pull request', '': 'unchanged' };
 
 if (!window.d3) {
-    panel.textContent = 'La bibliothèque de dessin n\'a pas pu se charger : il faut une connexion internet pour ouvrir ce graphe.';
+    panel.textContent = 'The drawing library could not load: opening this graph needs an internet connection.';
 } else {
     const nodes = DATA.nodes.map((n) => ({ ...n }));
     const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
@@ -133,7 +133,7 @@ if (!window.d3) {
 
     function intro() {
         const p = document.createElement('p');
-        p.textContent = 'Clique sur un point pour voir ses dépendances. Les points rouges sont modifiés par la PR, les verts ajoutés.';
+        p.textContent = 'Click a dot to see its dependencies. Red dots were changed by the pull request, green ones added.';
         panel.replaceChildren(p);
     }
 
@@ -146,10 +146,10 @@ if (!window.d3) {
         const state = document.createElement('div');
         state.className = 'muted';
         state.textContent = `${n.context} · ${stateLabel[n.state]}`;
-        const mark = (e) => (e.isNew ? ' (nouvelle)' : '');
+        const mark = (e) => (e.isNew ? ' (new)' : '');
         panel.replaceChildren(name, state,
-            list('Dépend de', edges.filter((e) => e.source === n).map((e) => short(e.target.id) + mark(e))),
-            list('Utilisée par', edges.filter((e) => e.target === n).map((e) => short(e.source.id) + mark(e))));
+            list('Depends on', edges.filter((e) => e.source === n).map((e) => short(e.target.id) + mark(e))),
+            list('Used by', edges.filter((e) => e.target === n).map((e) => short(e.source.id) + mark(e))));
         paint();
     }
 

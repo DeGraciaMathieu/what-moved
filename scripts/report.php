@@ -3,10 +3,10 @@
 /*
  * Turns the graph.php results of the base and the head into the dependency graph of the pull request.
  * Usage: php report.php <base json> <head json> <positions json> <output dir>. Writes:
- * - graphe.svg: one circle per context filled with a dot per class, red when the pull request changed it, green when
+ * - graph.svg: one circle per context filled with a dot per class, red when the pull request changed it, green when
  *   it added it, and only the relations it touches (added in green, existing ones from or to a touched class in grey);
- * - rapport.html: the same image, then every class and its dependencies to explore;
- * - resume.md: the figures for the pull request comment.
+ * - report.html: the same image, then every class and its dependencies to explore;
+ * - summary.md: the figures for the pull request comment.
  * The contexts sit where the positions file puts them, so the map stays the same from one pull request to the next.
  */
 
@@ -67,8 +67,8 @@ foreach ($edges as [$from, $to, $isNew]) {
     $links["{$a}>{$b}"]['touched'] += $byId[$from]['state'] !== '' || $byId[$to]['state'] !== '' ? 1 : 0;
 }
 
-// « 0 classe », « 1 classe », « 2 classes »: in French, zero takes the singular.
-$plural = fn (int $count, string $one, string $many): string => $count > 1 ? $many : $one;
+// "0 classes", "1 class", "2 classes": only one takes the singular.
+$plural = fn (int $count, string $one, string $many): string => $count === 1 ? $one : $many;
 
 // Share of a context's dependencies that stay inside it.
 $cohesion = fn (array $context): int => $context['internal'] + $context['out'] > 0
@@ -135,9 +135,9 @@ foreach (['edge' => '#a8998a', 'added' => '#2f7d4f'] as $id => $color) {
 
 $svg[] = '</defs>';
 $svg[] = '<rect width="780" height="610" fill="#ffffff"/>';
-$svg[] = sprintf('<text x="20" y="28" font-size="14" font-weight="600">%d %s sur %d · %d %s</text>',
-    $touchedCount, $plural($touchedCount, 'classe touchée', 'classes touchées'), count($nodes),
-    $addedEdges, $plural($addedEdges, 'dépendance ajoutée', 'dépendances ajoutées'));
+$svg[] = sprintf('<text x="20" y="28" font-size="14" font-weight="600">%d %s touched out of %d · %d %s added</text>',
+    $touchedCount, $plural($touchedCount, 'class', 'classes'), count($nodes),
+    $addedEdges, $plural($addedEdges, 'dependency', 'dependencies'));
 
 // An existing relation is drawn in grey at its full weight; what the pull request added goes over it in green,
 // as thick as the dependencies it added.
@@ -147,7 +147,7 @@ foreach ($links as $link) {
     }
 
     $path = $curve($positions[$link['from']], $positions[$link['to']], $radius($contexts[$link['from']]['classes']) + 3, $ring($link['to']));
-    $title = sprintf('<title>%s → %s : %d dépendances, dont %d ajoutées</title>', $e($link['from']), $e($link['to']), $link['weight'], $link['added']);
+    $title = sprintf('<title>%s → %s: %d dependencies, %d added</title>', $e($link['from']), $e($link['to']), $link['weight'], $link['added']);
 
     if ($link['added'] < $link['weight']) {
         $svg[] = sprintf('<path d="%s" fill="none" stroke="#a8998a" stroke-width="%.1f" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)">%s</path>',
@@ -189,10 +189,10 @@ foreach ($contexts as $name => $context) {
 
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" font-size="12.5" font-weight="600">%s<tspan dx="6" class="%s">%s</tspan></text>',
         $x, $y + $r + 17, $e($name), $context['added'] ? 'new' : 'sub',
-        $context['added'] ? 'nouveau' : sprintf('%d cl. · cohésion %d %%', $context['classes'], $cohesion($context)));
+        $context['added'] ? 'new' : sprintf('%d cl. · cohesion %d %%', $context['classes'], $cohesion($context)));
 }
 
-$legend = [['dot', $colors['domain'], 'Domain'], ['dot', $colors['application'], 'Application'], ['dot', $colors['infrastructure'], 'Infrastructure'], ['dot', $colors['web'], getenv('WHAT_MOVED_WEB_LABEL')], ['dot', $colors['changed'], 'modifiée'], ['dot', $colors['added'], 'ajoutée'], ['line', '#2f7d4f', 'dépendance ajoutée'], ['line', '#a8998a', 'dépendance existante touchée']];
+$legend = [['dot', $colors['domain'], 'Domain'], ['dot', $colors['application'], 'Application'], ['dot', $colors['infrastructure'], 'Infrastructure'], ['dot', $colors['web'], getenv('WHAT_MOVED_WEB_LABEL')], ['dot', $colors['changed'], 'changed'], ['dot', $colors['added'], 'added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched']];
 $x = 20;
 $y = 562;
 
@@ -214,7 +214,7 @@ foreach ($legend as [$shape, $color, $label]) {
 
 $svg[] = '</svg>';
 $image = implode("\n", $svg);
-file_put_contents("{$out}/graphe.svg", $image."\n");
+file_put_contents("{$out}/graph.svg", $image."\n");
 
 /*
  * The report to explore.
@@ -227,7 +227,7 @@ $data = json_encode([
     'colors' => $colors,
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 $report = file_get_contents(__DIR__.'/report.html');
-file_put_contents("{$out}/rapport.html", strtr($report, ['{{image}}' => $image, '{{data}}' => $data]));
+file_put_contents("{$out}/report.html", strtr($report, ['{{image}}' => $image, '{{data}}' => $data]));
 
 /*
  * The figures of the comment.
@@ -236,24 +236,24 @@ file_put_contents("{$out}/rapport.html", strtr($report, ['{{image}}' => $image, 
 $addedClasses = count(array_filter($nodes, fn (array $node): bool => $node['state'] === 'added'));
 $hot = array_filter($contexts, fn (array $context): bool => $context['hot'] > 0);
 ksort($hot);
-$summary = ['<!-- what-moved -->', '### Dépendances de la PR', ''];
+$summary = ['<!-- what-moved -->', '### What moved', ''];
 
 if ($hot === [] && $removedClasses === 0) {
-    $summary[] = sprintf('Cette PR ne touche aucune classe de `%s/`.', trim(getenv('WHAT_MOVED_SOURCE'), '/'));
+    $summary[] = sprintf('This pull request touches no class in `%s/`.', trim(getenv('WHAT_MOVED_SOURCE'), '/'));
 } else {
     $changedClasses = $touchedCount - $addedClasses;
-    $summary[] = sprintf('**%d** %s, **%d** %s, **%d** %s, sur %d · **%d** %s, **%d** %s.',
-        $addedClasses, $plural($addedClasses, 'classe ajoutée', 'classes ajoutées'),
-        $changedClasses, $plural($changedClasses, 'modifiée', 'modifiées'),
-        $removedClasses, $plural($removedClasses, 'supprimée', 'supprimées'),
+    $summary[] = sprintf('**%d** %s added, **%d** changed, **%d** removed, out of %d · **%d** %s added, **%d** removed.',
+        $addedClasses, $plural($addedClasses, 'class', 'classes'),
+        $changedClasses,
+        $removedClasses,
         count($nodes),
-        $addedEdges, $plural($addedEdges, 'dépendance ajoutée', 'dépendances ajoutées'),
-        $removedEdges, $plural($removedEdges, 'retirée', 'retirées'));
+        $addedEdges, $plural($addedEdges, 'dependency', 'dependencies'),
+        $removedEdges);
     $summary[] = '';
-    $summary[] = 'Contextes touchés : '.implode(', ', array_map(
-        fn (string $name, array $context): string => sprintf('`%s` (%d%s)', $name, $context['hot'], $context['added'] ? ', nouveau contexte' : ''),
+    $summary[] = 'Contexts touched: '.implode(', ', array_map(
+        fn (string $name, array $context): string => sprintf('`%s` (%d%s)', $name, $context['hot'], $context['added'] ? ', new context' : ''),
         array_keys($hot), $hot,
     )).'.';
 }
 
-file_put_contents("{$out}/resume.md", implode("\n", $summary)."\n");
+file_put_contents("{$out}/summary.md", implode("\n", $summary)."\n");
