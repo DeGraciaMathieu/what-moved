@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dépendances de la PR</title>
+<!-- Template of report.php, which puts in the graph of the comment and the data of every class and dependency. -->
+<style>
+    body { margin: 0; background: #fbfaf6; color: #1e1b16; font: 15px/1.5 -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; }
+    main { max-width: 64rem; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 24px; }
+    h1, h2 { margin: 0; font-family: Georgia, serif; }
+    p { margin: 0; color: #6b6357; max-width: 65ch; }
+    .frame { background: #fff; border: 1px solid #1e1b16; overflow-x: auto; }
+    .frame > svg { display: block; width: 100%; min-width: 600px; height: auto; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toolbar button { font: 600 13px inherit; font-family: inherit; color: #1e1b16; background: #fff; border: 1px solid #1e1b16; padding: 8px 12px; cursor: pointer; }
+    .toolbar button[aria-pressed="true"] { background: #1e1b16; color: #fbfaf6; }
+    .explore { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; background: #fff; border: 1px solid #1e1b16; }
+    .explore svg { display: block; width: 100%; min-width: 560px; height: auto; }
+    .explore .canvas { overflow-x: auto; border-right: 1px dashed #d9d1c2; }
+    .panel { padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; min-width: 0; }
+    .panel .name { font-family: ui-monospace, Menlo, monospace; font-size: 13px; word-break: break-all; color: #1e1b16; }
+    .panel ul { margin: 0; padding-left: 1rem; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+    .muted { color: #6b6357; }
+    circle.cls { cursor: pointer; }
+    circle.cls:focus-visible { outline: none; stroke: #b5121b; stroke-width: 3; }
+    @media (max-width: 720px) { .explore { grid-template-columns: minmax(0, 1fr); } .explore .canvas { border-right: 0; border-bottom: 1px dashed #d9d1c2; } }
+</style>
+</head>
+<body>
+<main>
+    <h1>Dépendances de la PR</h1>
+    <div class="frame">{{image}}</div>
+
+    <h2>Toutes les classes</h2>
+    <p>Chaque point est une classe, attirée vers son contexte. Clique sur un point pour voir ce dont il dépend et ce qui l'utilise.</p>
+    <div class="toolbar" role="group" aria-label="Classes affichées">
+        <button type="button" id="only-pr" aria-pressed="true">La PR et ses voisines</button>
+        <button type="button" id="everything" aria-pressed="false">Toute l'application</button>
+    </div>
+    <div class="explore">
+        <div class="canvas"><svg id="graph" viewBox="0 0 780 560" role="img" aria-label="Graphe des classes"></svg></div>
+        <aside class="panel" id="panel" aria-live="polite"></aside>
+    </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+const DATA = {{data}};
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('graph');
+const panel = document.getElementById('panel');
+const el = (tag, attrs, parent) => {
+    const node = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    parent.appendChild(node);
+    return node;
+};
+const short = (id) => id.split('\\').pop();
+const stateLabel = { added: 'ajoutée par la PR', changed: 'modifiée par la PR', '': 'inchangée' };
+
+if (!window.d3) {
+    panel.textContent = 'La bibliothèque de dessin n\'a pas pu se charger : il faut une connexion internet pour ouvrir ce graphe.';
+} else {
+    const nodes = DATA.nodes.map((n) => ({ ...n }));
+    const byId = Object.fromEntries(nodes.map((n) => [n.id, n]));
+    const edges = DATA.edges.map(([s, t, isNew]) => ({ source: byId[s], target: byId[t], isNew }));
+    const at = (name) => [DATA.positions[name][0] * 0.9 + 40, DATA.positions[name][1] * 0.95 + 20];
+
+    // Computed once, so the graph is the same on every opening.
+    d3.forceSimulation(nodes)
+        .force('x', d3.forceX((n) => at(n.context)[0]).strength(0.32))
+        .force('y', d3.forceY((n) => at(n.context)[1]).strength(0.32))
+        .force('collide', d3.forceCollide(9))
+        .force('link', d3.forceLink(edges).strength(0.02))
+        .stop()
+        .tick(320);
+
+    const touched = new Set(nodes.filter((n) => n.state).map((n) => n.id));
+    const neighbours = new Set(touched);
+    edges.forEach((e) => { if (touched.has(e.source.id) || touched.has(e.target.id)) { neighbours.add(e.source.id); neighbours.add(e.target.id); } });
+
+    const labels = el('g', {}, svg), edgeLayer = el('g', {}, svg), nodeLayer = el('g', {}, svg);
+    for (const name of new Set(nodes.map((n) => n.context))) {
+        const [x, y] = at(name);
+        el('text', { x, y: y - 58, 'text-anchor': 'middle', 'font-size': 12, 'font-weight': 600, fill: '#6b6357', 'letter-spacing': '0.08em' }, labels).textContent = name.toUpperCase();
+    }
+    const lines = edges.map((e) => el('line', {
+        x1: e.source.x, y1: e.source.y, x2: e.target.x, y2: e.target.y,
+        stroke: e.isNew ? DATA.colors.added : '#a8998a', 'stroke-width': e.isNew ? 2 : 0.8,
+    }, edgeLayer));
+    const dots = nodes.map((n) => {
+        const dot = el('circle', {
+            cx: n.x, cy: n.y, r: n.state ? 7 : 5, fill: DATA.colors[n.state || n.layer],
+            stroke: '#fff', 'stroke-width': 1.2, class: 'cls', tabindex: 0, role: 'button', 'aria-label': n.id,
+        }, nodeLayer);
+        el('title', {}, dot).textContent = n.id;
+        dot.addEventListener('click', () => select(n));
+        dot.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n); } });
+        return dot;
+    });
+
+    let onlyPr = true;
+    let selected = null;
+
+    function paint() {
+        const linked = (e) => e.source === selected || e.target === selected;
+        const focus = selected ? new Set([selected.id, ...edges.filter(linked).flatMap((e) => [e.source.id, e.target.id])]) : null;
+        nodes.forEach((n, i) => {
+            dots[i].style.display = !onlyPr || neighbours.has(n.id) ? '' : 'none';
+            dots[i].style.opacity = focus && !focus.has(n.id) ? 0.2 : 1;
+        });
+        edges.forEach((e, i) => {
+            const visible = !onlyPr || touched.has(e.source.id) || touched.has(e.target.id);
+            lines[i].style.display = visible ? '' : 'none';
+            lines[i].style.opacity = focus ? (linked(e) ? 1 : 0.08) : (e.isNew ? 1 : 0.45);
+        });
+    }
+
+    function list(title, items) {
+        const wrap = document.createElement('div');
+        const heading = document.createElement('div');
+        heading.className = 'muted';
+        heading.textContent = `${title} (${items.length})`;
+        wrap.appendChild(heading);
+        if (items.length) {
+            const ul = document.createElement('ul');
+            items.forEach((item) => { const li = document.createElement('li'); li.textContent = item; ul.appendChild(li); });
+            wrap.appendChild(ul);
+        }
+        return wrap;
+    }
+
+    function intro() {
+        const p = document.createElement('p');
+        p.textContent = 'Clique sur un point pour voir ses dépendances. Les points rouges sont modifiés par la PR, les verts ajoutés.';
+        panel.replaceChildren(p);
+    }
+
+    function select(n) {
+        selected = selected === n ? null : n;
+        if (!selected) { intro(); paint(); return; }
+        const name = document.createElement('div');
+        name.className = 'name';
+        name.textContent = n.id;
+        const state = document.createElement('div');
+        state.className = 'muted';
+        state.textContent = `${n.context} · ${stateLabel[n.state]}`;
+        const mark = (e) => (e.isNew ? ' (nouvelle)' : '');
+        panel.replaceChildren(name, state,
+            list('Dépend de', edges.filter((e) => e.source === n).map((e) => short(e.target.id) + mark(e))),
+            list('Utilisée par', edges.filter((e) => e.target === n).map((e) => short(e.source.id) + mark(e))));
+        paint();
+    }
+
+    function filter(pr) {
+        onlyPr = pr;
+        document.getElementById('only-pr').setAttribute('aria-pressed', String(pr));
+        document.getElementById('everything').setAttribute('aria-pressed', String(!pr));
+        paint();
+    }
+
+    document.getElementById('only-pr').addEventListener('click', () => filter(true));
+    document.getElementById('everything').addEventListener('click', () => filter(false));
+    intro();
+    paint();
+}
+</script>
+</body>
+</html>
