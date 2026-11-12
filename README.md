@@ -2,9 +2,9 @@
 
 Reviewing a pull request written by an AI starts with understanding what it moved. This action comments on the pull request with a map of the project's contexts: each class is a dot, red when the pull request changed it, green when it added it, with only the dependencies the pull request touches. You know where to look before opening the diff.
 
-![A pull request adding a Vins context, mapped by What moved](docs/example.svg)
+![A pull request making Labo depend on Vins, mapped by What moved](docs/example.svg)
 
-Here, the pull request adds a `Vins` context with three classes, changes two classes in `Http` and three in `Carnet`, and adds eight dependencies, drawn in green.
+Here, the pull request changes the only class of `Labo` and makes it depend on `Vins`: the new dependency is drawn in green, and the existing ones of the changed class in grey. Every other relation of the project stays off the map.
 
 The comment gives the figures, the image, and a link to a report to explore every class and its dependencies.
 
