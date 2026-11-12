@@ -21,7 +21,7 @@ inputs:
     description: Label of the web layer in the legend.
     default: Http
   positions:
-    description: JSON file, from the project root, placing each context on the map ({"Context": [x, y]}).
+    description: 'JSON file, from the project root, placing each context on the map ({"Context": [x, y]}).'
     default: .github/what-moved.json
   php-version:
     default: '8.2'
