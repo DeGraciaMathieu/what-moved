@@ -146,10 +146,23 @@ $radius = fn (int $classes): float => 10 + sqrt($classes) * 7;
 $ring = fn (string $name): float => $radius($contexts[$name]['classes']) + ($contexts[$name]['hot'] > 0 ? 10 : 4);
 $colors = ['changed' => '#b5121b', 'added' => '#2f7d4f'];
 
+// The relations on the map: the ones the pull request added, and the existing ones of the classes it touched.
+$drawn = array_filter($links, fn (array $link): bool => $link['added'] > 0 || $link['touched'] > 0);
+
+// The contexts on the map: by default only the ones the pull request touched or an arrow links, each at its usual
+// place; every context when the config asks for it, or when the pull request touched none.
+$shown = array_keys(array_filter($contexts, fn (array $context): bool => $context['hot'] > 0));
+
+foreach ($drawn as $link) {
+    array_push($shown, $link['from'], $link['to']);
+}
+
+$shown = $config['show-all-contexts'] || $shown === [] ? array_keys($contexts) : array_unique($shown);
+
 // What an edge should go around: every circle with its gauge, and the texts above and under it.
 $obstacles = [];
 
-foreach ($contexts as $name => $context) {
+foreach (array_intersect_key($contexts, array_flip($shown)) as $name => $context) {
     [$x, $y] = $positions[$name];
     $r = $radius($context['classes']);
     $label = mb_strlen($name) * 8 + ($context['added'] ? 30 : 90);
@@ -232,11 +245,7 @@ $svg[] = sprintf('<text x="20" y="28" font-size="14" font-weight="600">%d %s tou
 // as thick as the dependencies it added. The arrowheads are drawn again over the texts, which may hide them.
 $tips = [];
 
-foreach ($links as $link) {
-    if ($link['added'] === 0 && $link['touched'] === 0) {
-        continue;
-    }
-
+foreach ($drawn as $link) {
     $from = $positions[$link['from']];
     $to = $positions[$link['to']];
 
@@ -265,7 +274,7 @@ foreach ($links as $link) {
 $plate = fn (float $x, float $baseline, float $width, string $fill = '#ffffff'): string => sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="17" rx="3" fill="%s" opacity="0.92"/>',
     $x - $width / 2 - 5, $baseline - 12.5, $width + 10, $fill);
 
-foreach ($contexts as $name => $context) {
+foreach (array_intersect_key($contexts, array_flip($shown)) as $name => $context) {
     [$x, $y] = $positions[$name];
     $r = $radius($context['classes']);
 

@@ -4,7 +4,7 @@ Reviewing a pull request written by an AI starts with understanding what it move
 
 ![A pull request making Shipping depend on Billing, mapped by What moved](docs/hero.svg)
 
-Here, the pull request changes one of the three classes of `Shipping` and makes it depend on `Billing`: the new dependency is drawn in green, the existing ones of the changed class in grey. Every other relation of the project stays off the map.
+Here, the pull request changes one of the three classes of `Shipping` and makes it depend on `Billing`: the new dependency is drawn in green, the existing ones of the changed class in grey. Every other context and relation of the project stays off the map.
 
 ## The comment
 
@@ -26,7 +26,7 @@ The report holds the same map, then every class of the project as a dot: click o
 
 ## Reading the map
 
-- A **circle** is a context, sized by its number of classes, written at its centre. Under its name, `cohesion` is the share of its dependencies that stay inside it.
+- A **circle** is a context the pull request touched, or one an arrow links to it; the others stay off the map, and every context keeps its place from one pull request to the next. A circle is sized by its number of classes, written at its centre. Under its name, `cohesion` is the share of its dependencies that stay inside it.
 - A **gauge** rings a context the pull request touched: the red arc covers the share of its classes the pull request changed, the green one the share it added, as written above it (`1 of 3 changed`).
 - A **green arrow** is a dependency the pull request added, as thick as the number of dependencies it added between the two contexts. A **grey arrow** is an existing dependency from or to a touched class.
 - A **dashed green circle** is a context the pull request created:
@@ -76,9 +76,12 @@ The config file sets the contexts and their place on the map. Every key is optio
         "Ordering": { "position": [380, 310] },
         "Billing":  { "position": null }
     },
-    "exclude": ["Providers"]
+    "exclude": ["Providers"],
+    "show-all-contexts": false
 }
 ```
+
+`show-all-contexts` draws every context of the project, not only the ones the pull request moved. A pull request that touches no class shows them all anyway.
 
 ### Contexts
 
