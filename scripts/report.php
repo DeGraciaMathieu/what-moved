@@ -225,9 +225,44 @@ $curve = function (array $from, array $to, float $r1, float $r2, float $k): stri
         $x2 - ($x2 - $cx) / $end * $r2, $y2 - ($y2 - $cy) / $end * $r2);
 };
 
+foreach ($drawn as $key => $link) {
+    $drawn[$key]['bend'] = $bend($positions[$link['from']], $positions[$link['to']], $link['from'], $link['to']);
+}
+
+// What the drawing covers: the shown contexts with their texts, and the edges with their bends. The image is cropped
+// to it, centred under the title, with the legend right below.
+$bounds = [INF, INF, -INF, -INF];
+$cover = function (float $x1, float $y1, float $x2, float $y2) use (&$bounds): void {
+    $bounds = [min($bounds[0], $x1), min($bounds[1], $y1), max($bounds[2], $x2), max($bounds[3], $y2)];
+};
+
+foreach (array_intersect_key($contexts, array_flip($shown)) as $name => $context) {
+    [$x, $y] = $positions[$name];
+    $r = $radius($context['classes']);
+    $half = max($ring($name) + 4, (mb_strlen($name) * 7.4 + 6 + ($context['added'] ? 3 : 14) * 6.4) / 2 + 6, $context['hot'] > 0 ? 70 : 0);
+    $cover($x - $half, $y - ($context['hot'] > 0 ? $r + 40 : $ring($name) + 4), $x + $half, $y + $r + 30);
+}
+
+foreach ($drawn as $link) {
+    [$x1, $y1] = $positions[$link['from']];
+    [$x2, $y2] = $positions[$link['to']];
+    $cx = ($x1 + $x2) / 2 - ($y2 - $y1) * $link['bend'];
+    $cy = ($y1 + $y2) / 2 + ($x2 - $x1) * $link['bend'];
+
+    for ($t = 0; $t <= 1; $t += 0.05) {
+        $px = (1 - $t) ** 2 * $x1 + 2 * (1 - $t) * $t * $cx + $t ** 2 * $x2;
+        $py = (1 - $t) ** 2 * $y1 + 2 * (1 - $t) * $t * $cy + $t ** 2 * $y2;
+        $cover($px - 6, $py - 6, $px + 6, $py + 6);
+    }
+}
+
+[$left, $top, $right, $bottom] = $bounds === [INF, INF, -INF, -INF] ? [0, 50, 780, 50] : $bounds;
+$dx = (int) round((780 - $left - $right) / 2);
+$dy = (int) round(50 - $top);
+
 $touchedCount = count(array_filter($nodes, fn (array $node): bool => $node['state'] !== ''));
 $svg = [];
-$svg[] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 610" width="780" height="610" font-family="-apple-system, \'Segoe UI\', Helvetica, Arial, sans-serif">';
+$svg[] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 {{height}}" width="780" height="{{height}}" font-family="-apple-system, \'Segoe UI\', Helvetica, Arial, sans-serif">';
 $svg[] = '<style>text{fill:#1e1b16}.sub{fill:#6b6357;font-size:11px}.hot{fill:#b5121b;font-size:11px;font-weight:600}.new{fill:#2f7d4f;font-size:11px;font-weight:600}.legend{fill:#6b6357;font-size:12px}.count{fill:#6b6357;font-size:14px;font-weight:600}</style>';
 $svg[] = '<defs>';
 
@@ -236,10 +271,11 @@ foreach (['edge' => '#a8998a', 'added' => '#2f7d4f'] as $id => $color) {
 }
 
 $svg[] = '</defs>';
-$svg[] = '<rect width="780" height="610" fill="#ffffff"/>';
+$svg[] = '<rect width="780" height="{{height}}" fill="#ffffff"/>';
 $svg[] = sprintf('<text x="20" y="28" font-size="14" font-weight="600">%d %s touched out of %d · %d %s added</text>',
     $touchedCount, $plural($touchedCount, 'class', 'classes'), count($nodes),
     $addedEdges, $plural($addedEdges, 'dependency', 'dependencies'));
+$svg[] = sprintf('<g transform="translate(%d %d)">', $dx, $dy);
 
 // An existing relation is drawn in grey at its full weight; what the pull request added goes over it in green,
 // as thick as the dependencies it added. The arrowheads are drawn again over the texts, which may hide them.
@@ -254,7 +290,7 @@ foreach ($drawn as $link) {
         continue;
     }
 
-    $path = $curve($from, $to, $radius($contexts[$link['from']]['classes']) + 3, $ring($link['to']), $bend($from, $to, $link['from'], $link['to']));
+    $path = $curve($from, $to, $radius($contexts[$link['from']]['classes']) + 3, $ring($link['to']), $link['bend']);
     $title = sprintf('<title>%s → %s: %d dependencies, %d added</title>', $e($link['from']), $e($link['to']), $link['weight'], $link['added']);
 
     if ($link['added'] < $link['weight']) {
@@ -315,10 +351,11 @@ foreach (array_intersect_key($contexts, array_flip($shown)) as $name => $context
 }
 
 array_push($svg, ...$tips);
+$svg[] = '</g>';
 
 $legend = [['gauge', $colors['changed'], 'classes changed'], ['gauge', $colors['added'], 'classes added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched']];
 $x = 20;
-$y = 562;
+$y = (int) round($bottom + $dy + 30);
 
 foreach ($legend as [$shape, $color, $label]) {
     $offset = $shape === 'gauge' ? 16 : 24;
@@ -337,7 +374,7 @@ foreach ($legend as [$shape, $color, $label]) {
 }
 
 $svg[] = '</svg>';
-$image = implode("\n", $svg);
+$image = strtr(implode("\n", $svg), ['{{height}}' => $y + 22]);
 file_put_contents("{$out}/graph.svg", $image."\n");
 
 /*

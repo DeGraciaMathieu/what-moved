@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 610" width="780" height="610" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 376" width="780" height="376" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
 <style>text{fill:#1e1b16}.sub{fill:#6b6357;font-size:11px}.hot{fill:#b5121b;font-size:11px;font-weight:600}.new{fill:#2f7d4f;font-size:11px;font-weight:600}.legend{fill:#6b6357;font-size:12px}.count{fill:#6b6357;font-size:14px;font-weight:600}</style>
 <defs>
 <marker id="arrow-edge" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#a8998a"/></marker>
 <marker id="arrow-added" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#2f7d4f"/></marker>
 </defs>
-<rect width="780" height="610" fill="#ffffff"/>
+<rect width="780" height="376" fill="#ffffff"/>
 <text x="20" y="28" font-size="14" font-weight="600">1 class touched out of 30 · 1 dependency added</text>
+<g transform="translate(-19 -50)">
 <path d="M165.4 158.7 Q282.2 244.8 416.1 288.9" fill="none" stroke="#a8998a" stroke-width="3.8" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Http → Checkout: 3 dependencies, 0 added</title></path>
 <path d="M459.8 273.1 Q504.0 152.0 634.1 133.6" fill="none" stroke="#a8998a" stroke-width="3.3" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Checkout → Customers: 2 dependencies, 0 added</title></path>
 <path d="M421.4 298.3 Q348.4 294.0 277.1 312.8" fill="none" stroke="#2f7d4f" stroke-width="2.6" stroke-linecap="round" marker-end="url(#arrow-added)"><title>Checkout → Cart: 1 dependencies, 1 added</title></path>
@@ -32,12 +33,13 @@
 <path d="M165.4 158.7 Q282.2 244.8 416.1 288.9" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
 <path d="M459.8 273.1 Q504.0 152.0 634.1 133.6" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
 <path d="M421.4 298.3 Q348.4 294.0 277.1 312.8" fill="none" stroke="none" marker-end="url(#arrow-added)"/>
-<circle cx="25" cy="562" r="5" fill="none" stroke="#b5121b" stroke-width="3"/>
-<text x="36" y="566" class="legend">classes changed</text>
-<circle cx="153" cy="562" r="5" fill="none" stroke="#2f7d4f" stroke-width="3"/>
-<text x="164" y="566" class="legend">classes added</text>
-<line x1="263" y1="562" x2="281" y2="562" stroke="#2f7d4f" stroke-width="3"/>
-<text x="287" y="566" class="legend">dependency added</text>
-<line x1="405" y1="562" x2="423" y2="562" stroke="#a8998a" stroke-width="3"/>
-<text x="429" y="566" class="legend">existing dependency touched</text>
+</g>
+<circle cx="25" cy="354" r="5" fill="none" stroke="#b5121b" stroke-width="3"/>
+<text x="36" y="358" class="legend">classes changed</text>
+<circle cx="153" cy="354" r="5" fill="none" stroke="#2f7d4f" stroke-width="3"/>
+<text x="164" y="358" class="legend">classes added</text>
+<line x1="263" y1="354" x2="281" y2="354" stroke="#2f7d4f" stroke-width="3"/>
+<text x="287" y="358" class="legend">dependency added</text>
+<line x1="405" y1="354" x2="423" y2="354" stroke="#a8998a" stroke-width="3"/>
+<text x="429" y="358" class="legend">existing dependency touched</text>
 </svg>
