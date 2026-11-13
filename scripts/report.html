@@ -91,7 +91,7 @@ if (!window.d3) {
     }, edgeLayer));
     const dots = nodes.map((n) => {
         const dot = el('circle', {
-            cx: n.x, cy: n.y, r: n.state ? 7 : 5, fill: n.state ? DATA.colors[n.state] : DATA.layers[n.layer],
+            cx: n.x, cy: n.y, r: n.state ? 7 : 5, fill: n.state ? DATA.colors[n.state] : '#a8998a',
             stroke: '#fff', 'stroke-width': 1.2, class: 'cls', tabindex: 0, role: 'button', 'aria-label': n.id,
         }, nodeLayer);
         el('title', {}, dot).textContent = n.id;

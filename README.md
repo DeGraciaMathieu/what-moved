@@ -1,10 +1,10 @@
 # What moved
 
-Reviewing a pull request written by an AI starts with understanding what it moved. This action comments on the pull request with a map of the project's contexts: each class is a dot, red when the pull request changed it, green when it added it, with only the dependencies the pull request touches. You know where to look before opening the diff.
+Reviewing a pull request written by an AI starts with understanding what it moved. This action comments on the pull request with a map of the project's contexts: each context is a circle sized by its classes, ringed by the share of them the pull request changed or added, with only the dependencies the pull request touches. You know where to look before opening the diff.
 
 ![A pull request making Shipping depend on Billing, mapped by What moved](docs/hero.svg)
 
-Here, the pull request changes one class of `Shipping` and makes it depend on `Billing`: the new dependency is drawn in green, the existing ones of the changed class in grey. Every other relation of the project stays off the map.
+Here, the pull request changes one of the three classes of `Shipping` and makes it depend on `Billing`: the new dependency is drawn in green, the existing ones of the changed class in grey. Every other relation of the project stays off the map.
 
 ## The comment
 
@@ -22,13 +22,12 @@ Contexts touched: `Shipping` (1).
 [Explore every class](https://github.com/acme/shop/actions/runs/…/artifacts/…): download the report, then open `report.html`.
 ```
 
-The report holds the same map, then every class of the project: click a dot to see what it depends on and what uses it.
+The report holds the same map, then every class of the project as a dot: click one to see what it depends on and what uses it.
 
 ## Reading the map
 
-- A **circle** is a context, sized by its number of classes. Under its name, `cohesion` is the share of its dependencies that stay inside it.
-- A **dot** is a class. Its colour gives its layer, or red when the pull request changed it and green when it added it. The touched classes sit at the centre.
-- A **red ring** marks a context the pull request touched, with `hot:` the number of classes it touched there.
+- A **circle** is a context, sized by its number of classes, written at its centre. Under its name, `cohesion` is the share of its dependencies that stay inside it.
+- A **gauge** rings a context the pull request touched: the red arc covers the share of its classes the pull request changed, the green one the share it added, as written above it (`1 of 3 changed`).
 - A **green arrow** is a dependency the pull request added, as thick as the number of dependencies it added between the two contexts. A **grey arrow** is an existing dependency from or to a touched class.
 - A **dashed green circle** is a context the pull request created:
 
@@ -60,14 +59,14 @@ jobs:
 |---|---|---|
 | `source` | `app` | Folder of the classes to map, from the project root. |
 | `namespace` | `App` | Root namespace of the classes in the folder. |
-| `config` | `.github/what-moved.json` | Config file of the contexts and the layers, see below. |
+| `config` | `.github/what-moved.json` | Config file of the contexts, see below. |
 | `assets-branch` | `what-moved-assets` | Orphan branch that keeps the image of each pull request. |
 | `php-version` | `8.2` | PHP version that runs the analysis. |
 | `github-token` | `${{ github.token }}` | Token that pushes the image and posts the comment. |
 
 ## Configuration
 
-The config file sets the contexts, their place on the map, and the layers. Every key is optional: without a file, each first segment of the namespace is a context and the layers are `Domain`, `Application`, `Infrastructure` and `Http`. Placing the contexts is what makes the map readable, though: see [Positions](#positions).
+The config file sets the contexts and their place on the map. Every key is optional: without a file, each first segment of the namespace is a context. Placing the contexts is what makes the map readable, though: see [Positions](#positions).
 
 ```json
 {
@@ -77,14 +76,7 @@ The config file sets the contexts, their place on the map, and the layers. Every
         "Ordering": { "position": [380, 310] },
         "Billing":  { "position": null }
     },
-    "exclude": ["Providers"],
-    "layers": [
-        { "name": "Domain", "color": "#1e1b16", "segments": ["Domain"] },
-        { "name": "Application", "color": "#6b6357", "segments": ["Application"] },
-        { "name": "Infrastructure", "color": "#a8998a", "segments": ["Infrastructure"] },
-        { "name": "Web", "color": "#d9d1c2", "contexts": ["Http"] }
-    ],
-    "default-layer": "Application"
+    "exclude": ["Providers"]
 }
 ```
 
@@ -96,15 +88,6 @@ The context of a class is found from its name without the root namespace:
 - or else the first segment: `App\Catalog\Domain\Product` belongs to `Catalog`.
 
 A context without `prefixes`, like `Catalog` above, is still found by its first segment: declaring it only places it on the map. The classes that match a prefix of `exclude` stay off the map.
-
-### Layers
-
-A class takes the first layer, in the order of the file, that recognises it:
-
-- `contexts`: the class belongs to one of these contexts;
-- `segments`: one of the segments between the prefix of the context and the class name is one of these names, at any depth. `App\Catalog\Domain\Product` and `App\Catalog\Domain\Entity\Product` both fall in `Domain` above. A segment inside the prefix does not count: with a context declared as `Ordering\Application`, its classes fall in `default-layer`.
-
-A class no layer recognises falls in `default-layer`, which must be one of the layers. The layer gives the colour of the dot, and the order of the file gives the order of the legend and of the dots inside each context.
 
 ### Positions
 
@@ -129,7 +112,7 @@ List the contexts of `app/` with a place on the map, merge the policies into the
 
 ### Split a context too big to read
 
-In one `Ordering` context, a pull request that makes the checkout depend on the cart only turns a dot red: the dependency stays inside the circle.
+In one `Ordering` context, a pull request that makes the checkout depend on the cart only shows 1 of 9 classes changed: the dependency stays inside the circle.
 
 ![The pull request with one Ordering context](docs/split-before.svg)
 
@@ -147,21 +130,6 @@ Declare its modules as contexts of their own:
 The same pull request now shows the new dependency from `Checkout` to `Cart`:
 
 ![The same pull request with Ordering split into Cart and Checkout](docs/split-after.svg)
-
-### Other layer names
-
-A hexagonal project names its layers after ports and adapters:
-
-```json
-{
-    "layers": [
-        { "name": "Model", "color": "#1e1b16", "segments": ["Model", "Entity", "ValueObject"] },
-        { "name": "Use cases", "color": "#6b6357", "segments": ["UseCase", "Port"] },
-        { "name": "Adapters", "color": "#a8998a", "segments": ["Adapter"] }
-    ],
-    "default-layer": "Use cases"
-}
-```
 
 ### Code outside `app/`
 

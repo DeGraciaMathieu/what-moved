@@ -3,8 +3,9 @@
 /*
  * Turns the graph.php results of the base and the head into the dependency graph of the pull request.
  * Usage: php report.php <base json> <head json> <config json> <output dir>. Writes:
- * - graph.svg: one circle per context filled with a dot per class, red when the pull request changed it, green when
- *   it added it, and only the relations it touches (added in green, existing ones from or to a touched class in grey);
+ * - graph.svg: one circle per context, sized by its classes, ringed by a gauge of the share of them the pull request
+ *   changed (red) or added (green), and only the relations it touches (added in green, existing ones from or to
+ *   a touched class in grey);
  * - report.html: the same image, then every class and its dependencies to explore;
  * - summary.md: the figures for the pull request comment.
  * The contexts sit where the config file puts them, so the map stays the same from one pull request to the next.
@@ -43,9 +44,11 @@ $addedEdges = array_sum(array_column($edges, 2));
 $contexts = [];
 
 foreach ($nodes as $node) {
-    $contexts[$node['context']] ??= ['classes' => 0, 'hot' => 0, 'added' => true, 'internal' => 0, 'out' => 0];
+    $contexts[$node['context']] ??= ['classes' => 0, 'hot' => 0, 'changedClasses' => 0, 'addedClasses' => 0, 'added' => true, 'internal' => 0, 'out' => 0];
     $contexts[$node['context']]['classes']++;
     $contexts[$node['context']]['hot'] += $node['state'] !== '' ? 1 : 0;
+    $contexts[$node['context']]['changedClasses'] += $node['state'] === 'changed' ? 1 : 0;
+    $contexts[$node['context']]['addedClasses'] += $node['state'] === 'added' ? 1 : 0;
     $contexts[$node['context']]['added'] = $contexts[$node['context']]['added'] && $node['state'] === 'added';
 }
 
@@ -105,9 +108,8 @@ foreach (array_keys($contexts) as $name) {
 
 $e = fn (string $text): string => htmlspecialchars($text, ENT_QUOTES | ENT_XML1);
 $radius = fn (int $classes): float => 14 + sqrt($classes) * 10.5;
-$ring = fn (string $name): float => $radius($contexts[$name]['classes']) + ($contexts[$name]['hot'] > 0 ? 9 : 4);
+$ring = fn (string $name): float => $radius($contexts[$name]['classes']) + ($contexts[$name]['hot'] > 0 ? 10 : 4);
 $colors = ['changed' => '#b5121b', 'added' => '#2f7d4f'];
-$layerColors = array_column($config['layers'], 'color', 'name');
 
 // A slightly bent edge from circle edge to circle edge.
 $curve = function (array $from, array $to, float $r1, float $r2): string {
@@ -128,7 +130,7 @@ $curve = function (array $from, array $to, float $r1, float $r2): string {
 $touchedCount = count(array_filter($nodes, fn (array $node): bool => $node['state'] !== ''));
 $svg = [];
 $svg[] = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 610" width="780" height="610" font-family="-apple-system, \'Segoe UI\', Helvetica, Arial, sans-serif">';
-$svg[] = '<style>text{fill:#1e1b16}.sub{fill:#6b6357;font-size:11px}.hot{fill:#b5121b;font-size:11px;font-weight:600}.new{fill:#2f7d4f;font-size:11px;font-weight:600}.legend{fill:#6b6357;font-size:12px}</style>';
+$svg[] = '<style>text{fill:#1e1b16}.sub{fill:#6b6357;font-size:11px}.hot{fill:#b5121b;font-size:11px;font-weight:600}.new{fill:#2f7d4f;font-size:11px;font-weight:600}.legend{fill:#6b6357;font-size:12px}.count{fill:#6b6357;font-size:14px;font-weight:600}</style>';
 $svg[] = '<defs>';
 
 foreach (['edge' => '#a8998a', 'added' => '#2f7d4f'] as $id => $color) {
@@ -162,47 +164,48 @@ foreach ($links as $link) {
     }
 }
 
-$rank = ['changed' => 0, 'added' => 0, '' => 1];
-$layerRank = array_flip(array_column($config['layers'], 'name'));
-
 foreach ($contexts as $name => $context) {
     [$x, $y] = $positions[$name];
     $r = $radius($context['classes']);
 
+    // A gauge around a touched context: the red arc covers the share of its classes the pull request changed,
+    // the green one, right after, the share it added.
     if ($context['hot'] > 0) {
-        $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="none" stroke="#b5121b" stroke-width="3"/>', $x, $y, $r + 6);
-        $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="hot">hot:%d</text>', $x, $y - $r - 13, $context['hot']);
+        $length = 2 * M_PI * ($r + 6);
+        $changed = $length * $context['changedClasses'] / $context['classes'];
+        $added = $length * $context['addedClasses'] / $context['classes'];
+        $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="none" stroke="#e6dfd2" stroke-width="5"/>', $x, $y, $r + 6);
+        if ($changed > 0) {
+            $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="none" stroke="#b5121b" stroke-width="5" stroke-dasharray="%.1f %.1f" transform="rotate(-90 %d %d)"/>',
+                $x, $y, $r + 6, $changed, $length, $x, $y);
+        }
+
+        if ($added > 0) {
+            $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="none" stroke="#2f7d4f" stroke-width="5" stroke-dasharray="%.1f %.1f" stroke-dashoffset="%.1f" transform="rotate(-90 %d %d)"/>',
+                $x, $y, $r + 6, $added, $length, -$changed, $x, $y);
+        }
+
+        $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="%s">%s</text>', $x, $y - $r - 15, $changed > 0 ? 'hot' : 'new', $e(match (true) {
+            $context['addedClasses'] === 0 => sprintf('%d of %d changed', $context['changedClasses'], $context['classes']),
+            $context['changedClasses'] === 0 => sprintf('%d of %d added', $context['addedClasses'], $context['classes']),
+            default => sprintf('%d changed · %d added of %d', $context['changedClasses'], $context['addedClasses'], $context['classes']),
+        }));
     }
 
     $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="%s" stroke="%s" stroke-width="1.2"%s/>',
         $x, $y, $r, $context['added'] ? '#e3f1e8' : '#efe9dd', $context['added'] ? '#2f7d4f' : '#1e1b16', $context['added'] ? ' stroke-dasharray="4 3"' : '');
-
-    // A sunflower spiral, the classes touched by the pull request first, so at the centre.
-    $members = array_values(array_filter($nodes, fn (array $node): bool => $node['context'] === $name));
-    usort($members, fn (array $a, array $b): int => [$rank[$a['state']], $layerRank[$a['layer']], $a['id']] <=> [$rank[$b['state']], $layerRank[$b['layer']], $b['id']]);
-    $step = ($r - 9) / sqrt(count($members));
-
-    foreach ($members as $i => $node) {
-        $distance = $step * sqrt($i + 0.5);
-        $svg[] = sprintf('<circle cx="%.1f" cy="%.1f" r="%.1f" fill="%s" stroke="#ffffff" stroke-width="1"><title>%s</title></circle>',
-            $x + $distance * cos($i * 2.39996), $y + $distance * sin($i * 2.39996), min(5.5, $step * 0.42),
-            $node['state'] !== '' ? $colors[$node['state']] : $layerColors[$node['layer']], $e($node['id']));
-    }
-
+    $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="count">%d</text>', $x, $y + 5, $context['classes']);
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" font-size="12.5" font-weight="600">%s<tspan dx="6" class="%s">%s</tspan></text>',
-        $x, $y + $r + 17, $e($name), $context['added'] ? 'new' : 'sub',
-        $context['added'] ? 'new' : sprintf('%d cl. · cohesion %d %%', $context['classes'], $cohesion($context)));
+        $x, $y + $r + 19, $e($name), $context['added'] ? 'new' : 'sub',
+        $context['added'] ? 'new' : sprintf('cohesion %d %%', $cohesion($context)));
 }
 
-$legend = [
-    ...array_map(fn (array $layer): array => ['dot', $layer['color'], $layer['name']], $config['layers']),
-    ['dot', $colors['changed'], 'changed'], ['dot', $colors['added'], 'added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched'],
-];
+$legend = [['gauge', $colors['changed'], 'classes changed'], ['gauge', $colors['added'], 'classes added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched']];
 $x = 20;
 $y = 562;
 
 foreach ($legend as [$shape, $color, $label]) {
-    $offset = $shape === 'dot' ? 14 : 24;
+    $offset = $shape === 'gauge' ? 16 : 24;
     $width = $offset + (int) (mb_strlen($label) * 6.4) + 16;
 
     if ($x + $width > 770) {
@@ -210,8 +213,8 @@ foreach ($legend as [$shape, $color, $label]) {
         $y += 22;
     }
 
-    $svg[] = $shape === 'dot'
-        ? sprintf('<circle cx="%d" cy="%d" r="5" fill="%s" stroke="#6b6357" stroke-width="0.5"/>', $x + 5, $y, $color)
+    $svg[] = $shape === 'gauge'
+        ? sprintf('<circle cx="%d" cy="%d" r="5" fill="none" stroke="%s" stroke-width="3"/>', $x + 5, $y, $color)
         : sprintf('<line x1="%d" y1="%d" x2="%d" y2="%d" stroke="%s" stroke-width="3"/>', $x, $y, $x + 18, $y, $color);
     $svg[] = sprintf('<text x="%d" y="%d" class="legend">%s</text>', $x + $offset, $y + 4, $e($label));
     $x += $width;
@@ -226,11 +229,10 @@ file_put_contents("{$out}/graph.svg", $image."\n");
  */
 
 $data = json_encode([
-    'nodes' => array_map(fn (array $node): array => ['id' => $node['id'], 'context' => $node['context'], 'layer' => $node['layer'], 'state' => $node['state']], $nodes),
+    'nodes' => array_map(fn (array $node): array => ['id' => $node['id'], 'context' => $node['context'], 'state' => $node['state']], $nodes),
     'edges' => $edges,
     'positions' => $positions,
     'colors' => $colors,
-    'layers' => $layerColors,
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 $report = file_get_contents(__DIR__.'/report.html');
 file_put_contents("{$out}/report.html", strtr($report, ['{{image}}' => $image, '{{data}}' => $data]));

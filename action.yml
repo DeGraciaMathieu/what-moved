@@ -9,7 +9,7 @@ inputs:
     description: Root namespace of the classes in the folder; the segment after it gives the context.
     default: App
   config:
-    description: JSON file, from the project root, that sets the contexts and the layers and places each context on the map; see the README.
+    description: JSON file, from the project root, that sets the contexts and places them on the map; see the README.
     default: .github/what-moved.json
   php-version:
     default: '8.2'
