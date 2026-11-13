@@ -107,17 +107,67 @@ foreach (array_keys($contexts) as $name) {
  */
 
 $e = fn (string $text): string => htmlspecialchars($text, ENT_QUOTES | ENT_XML1);
-$radius = fn (int $classes): float => 14 + sqrt($classes) * 10.5;
+$radius = fn (int $classes): float => 10 + sqrt($classes) * 7;
 $ring = fn (string $name): float => $radius($contexts[$name]['classes']) + ($contexts[$name]['hot'] > 0 ? 10 : 4);
 $colors = ['changed' => '#b5121b', 'added' => '#2f7d4f'];
 
-// A slightly bent edge from circle edge to circle edge.
-$curve = function (array $from, array $to, float $r1, float $r2): string {
+// What an edge should go around: every circle with its gauge, and the texts above and under it.
+$obstacles = [];
+
+foreach ($contexts as $name => $context) {
+    [$x, $y] = $positions[$name];
+    $r = $radius($context['classes']);
+    $label = mb_strlen($name) * 8 + ($context['added'] ? 30 : 90);
+    $obstacles[] = ['context' => $name, 'circle' => [$x, $y, $ring($name) + 4]];
+    $obstacles[] = ['context' => null, 'box' => [$x - $label / 2, $y + $r + 6, $x + $label / 2, $y + $r + 24]];
+
+    if ($context['hot'] > 0) {
+        $obstacles[] = ['context' => null, 'box' => [$x - 55, $y - $r - 27, $x + 55, $y - $r - 11]];
+    }
+}
+
+// The bend of an edge: among a few on each side, the one that crosses the fewest obstacles, the straightest first.
+$bend = function (array $from, array $to, string $a, string $b) use ($obstacles): float {
     [$x1, $y1] = $from;
     [$x2, $y2] = $to;
-    $length = hypot($x2 - $x1, $y2 - $y1);
-    $cx = ($x1 + $x2) / 2 - ($y2 - $y1) / $length * 0.08 * $length;
-    $cy = ($y1 + $y2) / 2 + ($x2 - $x1) / $length * 0.08 * $length;
+    $best = [PHP_INT_MAX, 0.08];
+
+    foreach ([0.08, -0.08, 0.18, -0.18, 0.3, -0.3, 0.42, -0.42] as $k) {
+        $cx = ($x1 + $x2) / 2 - ($y2 - $y1) * $k;
+        $cy = ($y1 + $y2) / 2 + ($x2 - $x1) * $k;
+        $hits = 0;
+
+        for ($t = 0.04; $t < 0.97; $t += 0.03) {
+            $px = (1 - $t) ** 2 * $x1 + 2 * (1 - $t) * $t * $cx + $t ** 2 * $x2;
+            $py = (1 - $t) ** 2 * $y1 + 2 * (1 - $t) * $t * $cy + $t ** 2 * $y2;
+
+            foreach ($obstacles as $obstacle) {
+                if (isset($obstacle['circle'])) {
+                    [$ox, $oy, $or] = $obstacle['circle'];
+                    $hits += ! in_array($obstacle['context'], [$a, $b], true) && hypot($px - $ox, $py - $oy) < $or ? 1 : 0;
+                } else {
+                    [$left, $top, $right, $bottom] = $obstacle['box'];
+                    $hits += $px > $left && $px < $right && $py > $top && $py < $bottom ? 1 : 0;
+                }
+            }
+        }
+
+        $score = $hits + abs($k) * 4;
+
+        if ($score < $best[0]) {
+            $best = [$score, $k];
+        }
+    }
+
+    return $best[1];
+};
+
+// A bent edge from circle edge to circle edge.
+$curve = function (array $from, array $to, float $r1, float $r2, float $k): string {
+    [$x1, $y1] = $from;
+    [$x2, $y2] = $to;
+    $cx = ($x1 + $x2) / 2 - ($y2 - $y1) * $k;
+    $cy = ($y1 + $y2) / 2 + ($x2 - $x1) * $k;
     $start = hypot($cx - $x1, $cy - $y1);
     $end = hypot($x2 - $cx, $y2 - $cy);
 
@@ -144,13 +194,17 @@ $svg[] = sprintf('<text x="20" y="28" font-size="14" font-weight="600">%d %s tou
     $addedEdges, $plural($addedEdges, 'dependency', 'dependencies'));
 
 // An existing relation is drawn in grey at its full weight; what the pull request added goes over it in green,
-// as thick as the dependencies it added.
+// as thick as the dependencies it added. The arrowheads are drawn again over the texts, which may hide them.
+$tips = [];
+
 foreach ($links as $link) {
     if ($link['added'] === 0 && $link['touched'] === 0) {
         continue;
     }
 
-    $path = $curve($positions[$link['from']], $positions[$link['to']], $radius($contexts[$link['from']]['classes']) + 3, $ring($link['to']));
+    $from = $positions[$link['from']];
+    $to = $positions[$link['to']];
+    $path = $curve($from, $to, $radius($contexts[$link['from']]['classes']) + 3, $ring($link['to']), $bend($from, $to, $link['from'], $link['to']));
     $title = sprintf('<title>%s → %s: %d dependencies, %d added</title>', $e($link['from']), $e($link['to']), $link['weight'], $link['added']);
 
     if ($link['added'] < $link['weight']) {
@@ -162,7 +216,13 @@ foreach ($links as $link) {
         $svg[] = sprintf('<path d="%s" fill="none" stroke="#2f7d4f" stroke-width="%.1f" stroke-linecap="round" marker-end="url(#arrow-added)">%s</path>',
             $path, 1 + sqrt($link['added']) * 1.6, $title);
     }
+
+    $tips[] = sprintf('<path d="%s" fill="none" stroke="none" marker-end="url(#arrow-%s)"/>', $path, $link['added'] > 0 ? 'added' : 'edge');
 }
+
+// A white plate under a text centred on x, so the edges passing behind it do not run through the letters.
+$plate = fn (float $x, float $baseline, float $width): string => sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="17" rx="3" fill="#ffffff" opacity="0.92"/>',
+    $x - $width / 2 - 5, $baseline - 12.5, $width + 10);
 
 foreach ($contexts as $name => $context) {
     [$x, $y] = $positions[$name];
@@ -185,20 +245,25 @@ foreach ($contexts as $name => $context) {
                 $x, $y, $r + 6, $added, $length, -$changed, $x, $y);
         }
 
-        $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="%s">%s</text>', $x, $y - $r - 15, $changed > 0 ? 'hot' : 'new', $e(match (true) {
+        $count = match (true) {
             $context['addedClasses'] === 0 => sprintf('%d of %d changed', $context['changedClasses'], $context['classes']),
             $context['changedClasses'] === 0 => sprintf('%d of %d added', $context['addedClasses'], $context['classes']),
             default => sprintf('%d changed · %d added of %d', $context['changedClasses'], $context['addedClasses'], $context['classes']),
-        }));
+        };
+        $svg[] = $plate($x, $y - $r - 15, mb_strlen($count) * 6.3);
+        $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="%s">%s</text>', $x, $y - $r - 15, $changed > 0 ? 'hot' : 'new', $e($count));
     }
 
     $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="%s" stroke="%s" stroke-width="1.2"%s/>',
         $x, $y, $r, $context['added'] ? '#e3f1e8' : '#efe9dd', $context['added'] ? '#2f7d4f' : '#1e1b16', $context['added'] ? ' stroke-dasharray="4 3"' : '');
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="count">%d</text>', $x, $y + 5, $context['classes']);
+    $detail = $context['added'] ? 'new' : sprintf('cohesion %d %%', $cohesion($context));
+    $svg[] = $plate($x, $y + $r + 19, mb_strlen($name) * 7.4 + 6 + mb_strlen($detail) * 6.4);
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" font-size="12.5" font-weight="600">%s<tspan dx="6" class="%s">%s</tspan></text>',
-        $x, $y + $r + 19, $e($name), $context['added'] ? 'new' : 'sub',
-        $context['added'] ? 'new' : sprintf('cohesion %d %%', $cohesion($context)));
+        $x, $y + $r + 19, $e($name), $context['added'] ? 'new' : 'sub', $detail);
 }
+
+array_push($svg, ...$tips);
 
 $legend = [['gauge', $colors['changed'], 'classes changed'], ['gauge', $colors['added'], 'classes added'], ['line', '#2f7d4f', 'dependency added'], ['line', '#a8998a', 'existing dependency touched']];
 $x = 20;
