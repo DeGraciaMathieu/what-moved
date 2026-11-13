@@ -1,6 +1,10 @@
 name: What moved
 description: Maps what a pull request moved among your PHP classes and their dependencies, to know where to look before the diff.
 
+branding:
+  icon: map
+  color: green
+
 inputs:
   source:
     description: Folder of the classes to map, from the project root.
