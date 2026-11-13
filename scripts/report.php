@@ -119,10 +119,10 @@ foreach ($contexts as $name => $context) {
     $r = $radius($context['classes']);
     $label = mb_strlen($name) * 8 + ($context['added'] ? 30 : 90);
     $obstacles[] = ['context' => $name, 'circle' => [$x, $y, $ring($name) + 4]];
-    $obstacles[] = ['context' => null, 'box' => [$x - $label / 2, $y + $r + 6, $x + $label / 2, $y + $r + 24]];
+    $obstacles[] = ['context' => null, 'box' => [$x - $label / 2, $y + $r + 11, $x + $label / 2, $y + $r + 29]];
 
     if ($context['hot'] > 0) {
-        $obstacles[] = ['context' => null, 'box' => [$x - 55, $y - $r - 27, $x + 55, $y - $r - 11]];
+        $obstacles[] = ['context' => null, 'box' => [$x - 55, $y - $r - 39, $x + 55, $y - $r - 21]];
     }
 }
 
@@ -220,9 +220,9 @@ foreach ($links as $link) {
     $tips[] = sprintf('<path d="%s" fill="none" stroke="none" marker-end="url(#arrow-%s)"/>', $path, $link['added'] > 0 ? 'added' : 'edge');
 }
 
-// A white plate under a text centred on x, so the edges passing behind it do not run through the letters.
-$plate = fn (float $x, float $baseline, float $width): string => sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="17" rx="3" fill="#ffffff" opacity="0.92"/>',
-    $x - $width / 2 - 5, $baseline - 12.5, $width + 10);
+// A plate under a text centred on x, so the edges passing behind it do not run through the letters.
+$plate = fn (float $x, float $baseline, float $width, string $fill = '#ffffff'): string => sprintf('<rect x="%.1f" y="%.1f" width="%.1f" height="17" rx="3" fill="%s" opacity="0.92"/>',
+    $x - $width / 2 - 5, $baseline - 12.5, $width + 10, $fill);
 
 foreach ($contexts as $name => $context) {
     [$x, $y] = $positions[$name];
@@ -250,17 +250,18 @@ foreach ($contexts as $name => $context) {
             $context['changedClasses'] === 0 => sprintf('%d of %d added', $context['addedClasses'], $context['classes']),
             default => sprintf('%d changed · %d added of %d', $context['changedClasses'], $context['addedClasses'], $context['classes']),
         };
-        $svg[] = $plate($x, $y - $r - 15, mb_strlen($count) * 6.3);
-        $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="%s">%s</text>', $x, $y - $r - 15, $changed > 0 ? 'hot' : 'new', $e($count));
+        // High enough over the gauge for an arrowhead coming from above to fit between them.
+        $svg[] = $plate($x, $y - $r - 26, mb_strlen($count) * 6.3, $changed > 0 ? '#fbe8e8' : '#e3f1e8');
+        $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="%s">%s</text>', $x, $y - $r - 26, $changed > 0 ? 'hot' : 'new', $e($count));
     }
 
     $svg[] = sprintf('<circle cx="%d" cy="%d" r="%.1f" fill="%s" stroke="%s" stroke-width="1.2"%s/>',
         $x, $y, $r, $context['added'] ? '#e3f1e8' : '#efe9dd', $context['added'] ? '#2f7d4f' : '#1e1b16', $context['added'] ? ' stroke-dasharray="4 3"' : '');
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" class="count">%d</text>', $x, $y + 5, $context['classes']);
     $detail = $context['added'] ? 'new' : sprintf('cohesion %d %%', $cohesion($context));
-    $svg[] = $plate($x, $y + $r + 19, mb_strlen($name) * 7.4 + 6 + mb_strlen($detail) * 6.4);
+    $svg[] = $plate($x, $y + $r + 24, mb_strlen($name) * 7.4 + 6 + mb_strlen($detail) * 6.4);
     $svg[] = sprintf('<text x="%d" y="%.1f" text-anchor="middle" font-size="12.5" font-weight="600">%s<tspan dx="6" class="%s">%s</tspan></text>',
-        $x, $y + $r + 19, $e($name), $context['added'] ? 'new' : 'sub', $detail);
+        $x, $y + $r + 24, $e($name), $context['added'] ? 'new' : 'sub', $detail);
 }
 
 array_push($svg, ...$tips);

@@ -7,25 +7,25 @@
 <rect width="780" height="460" fill="#ffffff"/>
 <text x="20" y="28" font-size="14" font-weight="600">1 class touched out of 30 · 1 dependency added</text>
 <path d="M395.1 329.7 Q488.2 328.4 573.5 299.1" fill="none" stroke="#2f7d4f" stroke-width="2.6" stroke-linecap="round" marker-end="url(#arrow-added)"><title>Shipping → Billing: 1 dependencies, 1 added</title></path>
-<path d="M373.6 305.1 Q387.0 211.0 318.2 160.7" fill="none" stroke="#a8998a" stroke-width="2.6" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Shipping → Ordering: 1 dependencies, 0 added</title></path>
+<path d="M347.6 318.5 Q250.2 268.6 279.7 173.4" fill="none" stroke="#a8998a" stroke-width="2.6" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Shipping → Ordering: 1 dependencies, 0 added</title></path>
 <circle cx="600" cy="290" r="24.0" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="600" y="295.0" text-anchor="middle" class="count">4</text>
-<rect x="524.5" y="320.5" width="151.0" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="600" y="333.0" text-anchor="middle" font-size="12.5" font-weight="600">Billing<tspan dx="6" class="sub">cohesion 80 %</tspan></text>
+<rect x="524.5" y="325.5" width="151.0" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="600" y="338.0" text-anchor="middle" font-size="12.5" font-weight="600">Billing<tspan dx="6" class="sub">cohesion 80 %</tspan></text>
 <circle cx="290" cy="140" r="31.0" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="290" y="145.0" text-anchor="middle" class="count">9</text>
-<rect x="210.8" y="177.5" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="290" y="190.0" text-anchor="middle" font-size="12.5" font-weight="600">Ordering<tspan dx="6" class="sub">cohesion 57 %</tspan></text>
+<rect x="210.8" y="182.5" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="290" y="195.0" text-anchor="middle" font-size="12.5" font-weight="600">Ordering<tspan dx="6" class="sub">cohesion 57 %</tspan></text>
 <circle cx="370" cy="330" r="28.1" fill="none" stroke="#e6dfd2" stroke-width="5"/>
 <circle cx="370" cy="330" r="28.1" fill="none" stroke="#b5121b" stroke-width="5" stroke-dasharray="58.9 176.7" transform="rotate(-90 370 330)"/>
-<rect x="320.9" y="280.4" width="98.2" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="370" y="292.9" text-anchor="middle" class="hot">1 of 3 changed</text>
+<rect x="320.9" y="269.4" width="98.2" height="17" rx="3" fill="#fbe8e8" opacity="0.92"/>
+<text x="370" y="281.9" text-anchor="middle" class="hot">1 of 3 changed</text>
 <circle cx="370" cy="330" r="22.1" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="370" y="335.0" text-anchor="middle" class="count">3</text>
-<rect x="290.8" y="358.6" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="370" y="371.1" text-anchor="middle" font-size="12.5" font-weight="600">Shipping<tspan dx="6" class="sub">cohesion 50 %</tspan></text>
+<rect x="290.8" y="363.6" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="370" y="376.1" text-anchor="middle" font-size="12.5" font-weight="600">Shipping<tspan dx="6" class="sub">cohesion 50 %</tspan></text>
 <path d="M395.1 329.7 Q488.2 328.4 573.5 299.1" fill="none" stroke="none" marker-end="url(#arrow-added)"/>
-<path d="M373.6 305.1 Q387.0 211.0 318.2 160.7" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
+<path d="M347.6 318.5 Q250.2 268.6 279.7 173.4" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
 <g transform="translate(0 -150)">
 <circle cx="25" cy="562" r="5" fill="none" stroke="#b5121b" stroke-width="3"/>
 <text x="36" y="566" class="legend">classes changed</text>

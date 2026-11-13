@@ -6,43 +6,43 @@
 </defs>
 <rect width="780" height="610" fill="#ffffff"/>
 <text x="20" y="28" font-size="14" font-weight="600">1 class touched out of 30 · 1 dependency added</text>
-<path d="M169.9 149.8 Q307.8 195.2 421.3 278.8" fill="none" stroke="#a8998a" stroke-width="3.8" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Http → Checkout: 3 dependencies, 0 added</title></path>
-<path d="M478.4 296.0 Q606.0 278.0 651.0 154.5" fill="none" stroke="#a8998a" stroke-width="3.3" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Checkout → Customers: 2 dependencies, 0 added</title></path>
+<path d="M165.4 158.7 Q282.2 244.8 416.1 288.9" fill="none" stroke="#a8998a" stroke-width="3.8" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Http → Checkout: 3 dependencies, 0 added</title></path>
+<path d="M459.8 273.1 Q504.0 152.0 634.1 133.6" fill="none" stroke="#a8998a" stroke-width="3.3" stroke-linecap="round" opacity="0.8" marker-end="url(#arrow-edge)"><title>Checkout → Customers: 2 dependencies, 0 added</title></path>
 <path d="M421.4 298.3 Q348.4 294.0 277.1 312.8" fill="none" stroke="#2f7d4f" stroke-width="2.6" stroke-linecap="round" marker-end="url(#arrow-added)"><title>Checkout → Cart: 1 dependencies, 1 added</title></path>
 <circle cx="680" cy="370" r="24.0" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="680" y="375.0" text-anchor="middle" class="count">4</text>
-<rect x="604.5" y="400.5" width="151.0" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="680" y="413.0" text-anchor="middle" font-size="12.5" font-weight="600">Billing<tspan dx="6" class="sub">cohesion 80 %</tspan></text>
+<rect x="604.5" y="405.5" width="151.0" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="680" y="418.0" text-anchor="middle" font-size="12.5" font-weight="600">Billing<tspan dx="6" class="sub">cohesion 80 %</tspan></text>
 <circle cx="400" cy="110" r="24.0" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="400" y="115.0" text-anchor="middle" class="count">4</text>
-<rect x="321.3" y="140.5" width="157.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="400" y="153.0" text-anchor="middle" font-size="12.5" font-weight="600">Catalog<tspan dx="6" class="sub">cohesion 100 %</tspan></text>
+<rect x="321.3" y="145.5" width="157.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="400" y="158.0" text-anchor="middle" font-size="12.5" font-weight="600">Catalog<tspan dx="6" class="sub">cohesion 100 %</tspan></text>
 <circle cx="660" cy="130" r="22.1" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="660" y="135.0" text-anchor="middle" class="count">3</text>
-<rect x="573.9" y="158.6" width="172.2" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="660" y="171.1" text-anchor="middle" font-size="12.5" font-weight="600">Customers<tspan dx="6" class="sub">cohesion 100 %</tspan></text>
+<rect x="573.9" y="163.6" width="172.2" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="660" y="176.1" text-anchor="middle" font-size="12.5" font-weight="600">Customers<tspan dx="6" class="sub">cohesion 100 %</tspan></text>
 <circle cx="140" cy="140" r="28.5" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="140" y="145.0" text-anchor="middle" class="count">7</text>
-<rect x="75.6" y="175.0" width="128.8" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="140" y="187.5" text-anchor="middle" font-size="12.5" font-weight="600">Http<tspan dx="6" class="sub">cohesion 22 %</tspan></text>
+<rect x="75.6" y="180.0" width="128.8" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="140" y="192.5" text-anchor="middle" font-size="12.5" font-weight="600">Http<tspan dx="6" class="sub">cohesion 22 %</tspan></text>
 <circle cx="250" cy="320" r="24.0" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="250" y="325.0" text-anchor="middle" class="count">4</text>
-<rect x="185.6" y="350.5" width="128.8" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="250" y="363.0" text-anchor="middle" font-size="12.5" font-weight="600">Cart<tspan dx="6" class="sub">cohesion 40 %</tspan></text>
+<rect x="185.6" y="355.5" width="128.8" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="250" y="368.0" text-anchor="middle" font-size="12.5" font-weight="600">Cart<tspan dx="6" class="sub">cohesion 40 %</tspan></text>
 <circle cx="450" cy="300" r="31.7" fill="none" stroke="#e6dfd2" stroke-width="5"/>
 <circle cx="450" cy="300" r="31.7" fill="none" stroke="#b5121b" stroke-width="5" stroke-dasharray="39.8 198.9" transform="rotate(-90 450 300)"/>
-<rect x="400.9" y="246.8" width="98.2" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="450" y="259.3" text-anchor="middle" class="hot">1 of 5 changed</text>
+<rect x="400.9" y="235.8" width="98.2" height="17" rx="3" fill="#fbe8e8" opacity="0.92"/>
+<text x="450" y="248.3" text-anchor="middle" class="hot">1 of 5 changed</text>
 <circle cx="450" cy="300" r="25.7" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="450" y="305.0" text-anchor="middle" class="count">5</text>
-<rect x="370.8" y="332.2" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="450" y="344.7" text-anchor="middle" font-size="12.5" font-weight="600">Checkout<tspan dx="6" class="sub">cohesion 60 %</tspan></text>
+<rect x="370.8" y="337.2" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="450" y="349.7" text-anchor="middle" font-size="12.5" font-weight="600">Checkout<tspan dx="6" class="sub">cohesion 60 %</tspan></text>
 <circle cx="480" cy="470" r="22.1" fill="#efe9dd" stroke="#1e1b16" stroke-width="1.2"/>
 <text x="480" y="475.0" text-anchor="middle" class="count">3</text>
-<rect x="400.8" y="498.6" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
-<text x="480" y="511.1" text-anchor="middle" font-size="12.5" font-weight="600">Shipping<tspan dx="6" class="sub">cohesion 60 %</tspan></text>
-<path d="M169.9 149.8 Q307.8 195.2 421.3 278.8" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
-<path d="M478.4 296.0 Q606.0 278.0 651.0 154.5" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
+<rect x="400.8" y="503.6" width="158.4" height="17" rx="3" fill="#ffffff" opacity="0.92"/>
+<text x="480" y="516.1" text-anchor="middle" font-size="12.5" font-weight="600">Shipping<tspan dx="6" class="sub">cohesion 60 %</tspan></text>
+<path d="M165.4 158.7 Q282.2 244.8 416.1 288.9" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
+<path d="M459.8 273.1 Q504.0 152.0 634.1 133.6" fill="none" stroke="none" marker-end="url(#arrow-edge)"/>
 <path d="M421.4 298.3 Q348.4 294.0 277.1 312.8" fill="none" stroke="none" marker-end="url(#arrow-added)"/>
 <circle cx="25" cy="562" r="5" fill="none" stroke="#b5121b" stroke-width="3"/>
 <text x="36" y="566" class="legend">classes changed</text>
