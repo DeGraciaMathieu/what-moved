@@ -10,6 +10,7 @@
  * the contexts come from the config file.
  */
 
+use PhpParser\Error;
 use PhpParser\Node;
 use PhpParser\NodeFinder;
 use PhpParser\NodeTraverser;
@@ -72,7 +73,15 @@ foreach ($files as $file) {
 
     $code = file_get_contents($file->getPathname());
     $traverser = new NodeTraverser(new NameResolver);
-    $ast = $traverser->traverse($parser->parse($code));
+
+    // A file the parser cannot read stays off the map, said in the logs, rather than leaving the pull request without one.
+    try {
+        $ast = $traverser->traverse($parser->parse($code));
+    } catch (Error $error) {
+        fwrite(STDERR, sprintf("Skipped %s: %s\n", substr($file->getPathname(), strlen($root) + 1), $error->getMessage()));
+
+        continue;
+    }
 
     foreach ($finder->findInstanceOf($ast, Node\Stmt\ClassLike::class) as $declaration) {
         if ($declaration->namespacedName === null) {

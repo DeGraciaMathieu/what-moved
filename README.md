@@ -91,7 +91,7 @@ A context without `prefixes`, like `Catalog` above, is still found by its first 
 
 ### Positions
 
-The `position` of a context places it on a 780 by 610 map, so the map stays the same from one pull request to the next. A context without a position, or with a null one, goes next to the placed context it shares the most dependencies with; with no placed neighbour, it goes to the middle of the map, where the unplaced contexts pile up. Place every context once, and leave a null position to the ones still moving.
+The `position` of a context places it on a 780 by 610 map, so the map stays the same from one pull request to the next. A context without a position, or with a null one, goes to a free spot next to the placed context it shares the most dependencies with, or else to the free spot of the map farthest from the others. That keeps the map drawn, not readable: past a few contexts, place every one of them, and leave a null position to the ones still moving.
 
 ## Recipes
 

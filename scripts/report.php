@@ -79,8 +79,27 @@ $cohesion = fn (array $context): int => $context['internal'] + $context['out'] >
     ? (int) round(100 * $context['internal'] / ($context['internal'] + $context['out']))
     : 100;
 
-// A context without a position goes next to the one it shares the most dependencies with.
+// A context without a position goes next to the one it shares the most dependencies with, at the first free spot
+// around it, or else at the free spot of the map farthest from the others.
 $positions = $config['positions'];
+$free = function (array $spot) use (&$positions): float {
+    $distances = array_map(fn (array $position): float => hypot($position[0] - $spot[0], $position[1] - $spot[1]), $positions);
+
+    return $distances === [] ? INF : min($distances);
+};
+$farthest = function () use ($free): array {
+    $spots = [];
+
+    for ($x = 70; $x <= 710; $x += 40) {
+        for ($y = 80; $y <= 480; $y += 40) {
+            $spots[] = [$x, $y];
+        }
+    }
+
+    usort($spots, fn (array $a, array $b): int => $free($b) <=> $free($a));
+
+    return $spots[0];
+};
 
 foreach (array_keys($contexts) as $name) {
     if (isset($positions[$name])) {
@@ -99,7 +118,23 @@ foreach (array_keys($contexts) as $name) {
 
     arsort($neighbours);
     [$x, $y] = $positions[array_key_first($neighbours) ?? ''] ?? [390, 270];
-    $positions[$name] = [min(730, $x + 110), min(480, $y + 90)];
+    $spots = [];
+
+    foreach ([140, 220, 300] as $distance) {
+        for ($angle = 0; $angle < 360; $angle += 30) {
+            $spots[] = [(int) round($x + $distance * cos(deg2rad($angle + 40))), (int) round($y + $distance * sin(deg2rad($angle + 40)))];
+        }
+    }
+
+    $positions[$name] = $farthest();
+
+    foreach ($spots as [$sx, $sy]) {
+        if ($sx >= 70 && $sx <= 710 && $sy >= 80 && $sy <= 480 && $free([$sx, $sy]) >= 110) {
+            $positions[$name] = [$sx, $sy];
+
+            break;
+        }
+    }
 }
 
 /*
@@ -204,6 +239,12 @@ foreach ($links as $link) {
 
     $from = $positions[$link['from']];
     $to = $positions[$link['to']];
+
+    // Two contexts the config puts at the same place have no edge to draw between them.
+    if ($from == $to) {
+        continue;
+    }
+
     $path = $curve($from, $to, $radius($contexts[$link['from']]['classes']) + 3, $ring($link['to']), $bend($from, $to, $link['from'], $link['to']));
     $title = sprintf('<title>%s → %s: %d dependencies, %d added</title>', $e($link['from']), $e($link['to']), $link['weight'], $link['added']);
 
