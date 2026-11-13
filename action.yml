@@ -1,5 +1,5 @@
 name: What moved
-description: Draws on the pull request what it moved among the classes and their dependencies, to know where to look before reading the diff.
+description: Maps what a pull request moved among your PHP classes and their dependencies, to know where to look before the diff.
 
 inputs:
   source:
