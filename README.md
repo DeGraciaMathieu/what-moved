@@ -52,7 +52,7 @@ jobs:
   graph:
     runs-on: ubuntu-latest
     steps:
-      - uses: DeGraciaMathieu/what-moved@v4
+      - uses: DeGraciaMathieu/what-moved@v5
 ```
 
 | Input | Default | |
@@ -139,7 +139,7 @@ The same pull request now shows the new dependency from `Checkout` to `Cart`:
 For classes in `src/` under `Acme\`:
 
 ```yaml
-      - uses: DeGraciaMathieu/what-moved@v4
+      - uses: DeGraciaMathieu/what-moved@v5
         with:
           source: src
           namespace: Acme
