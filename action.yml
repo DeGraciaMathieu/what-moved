@@ -39,7 +39,7 @@ runs:
     - uses: actions/checkout@v4
       with:
         repository: DeGraciaMathieu/what-moved-core
-        ref: v1.0.1
+        ref: v1.1.0
         path: .what-moved/core
 
     - uses: shivammathur/setup-php@v2
