@@ -35,15 +35,22 @@ runs:
         ref: ${{ github.event.pull_request.base.sha }}
         path: .what-moved/base
 
+    # The analysis lives in what-moved-core, with its tests; a tag of the action pins one of its tags.
+    - uses: actions/checkout@v4
+      with:
+        repository: DeGraciaMathieu/what-moved-core
+        ref: v1.0.0
+        path: .what-moved/core
+
     - uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.php-version }}
         coverage: none
 
-    - name: Install the parser
+    - name: Install the analysis
       shell: bash
-      working-directory: ${{ github.action_path }}
-      run: composer install --no-interaction --prefer-dist --no-progress
+      working-directory: .what-moved/core
+      run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
     - name: Draw the graph
       shell: bash
@@ -54,9 +61,9 @@ runs:
         CONFIG: ${{ inputs.config }}
       # The base may not have the config file yet: both sides are read with the one of the head.
       run: |
-        php "$GITHUB_ACTION_PATH/scripts/graph.php" base "head/$CONFIG" > base.json
-        php "$GITHUB_ACTION_PATH/scripts/graph.php" head "head/$CONFIG" > head.json
-        php "$GITHUB_ACTION_PATH/scripts/report.php" base.json head.json "head/$CONFIG" out
+        php core/scripts/graph.php base "head/$CONFIG" > base.json
+        php core/scripts/graph.php head "head/$CONFIG" > head.json
+        php core/scripts/report.php base.json head.json "head/$CONFIG" out
 
     # The graph goes to an orphan branch of the repository, so it is shown to whoever can read the repository.
     # The comment links it by commit, so an updated pull request never shows a cached graph.
