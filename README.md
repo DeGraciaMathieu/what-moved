@@ -68,6 +68,9 @@ jobs:
 
 The config file sets the contexts and their place on the map. Every key is optional: without a file, each first segment of the namespace is a context. Placing the contexts is what makes the map readable, though: see [Positions](#positions).
 
+> [!TIP]
+> Ask your AI assistant (Claude or another) to write this file: give it this section and your `app/` folder, and let it choose the contexts and their positions. It makes a very good base to adjust.
+
 ```json
 {
     "contexts": {
